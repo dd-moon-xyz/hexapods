@@ -5,6 +5,8 @@ CARGO ?= cargo
 
 .PHONY: rust-setup
 rust-setup:
+	sudo apt update
+	sudo apt install -y cmake libsdl3-dev
 	@set -eu; \
 	if ! command -v rustup >/dev/null 2>&1; then \
 		installer=$$(mktemp); \

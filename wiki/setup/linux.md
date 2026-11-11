@@ -9,13 +9,30 @@ title: Linux Build and Run
 
 Install Rust 1.85+, a C/C++ compiler, CMake 3.24+, `pkg-config`, NASM on x86, and a CUDA Toolkit with a compatible C++20 host compiler. Runtime needs an NVIDIA GPU and compatible driver.
 
-Run `make rust-setup` to install or update stable Rust, Cargo, rustfmt, and Clippy through rustup. See the [Rust environment guide](python.md) for PATH setup and dependency/build behavior. This command installs the Rust toolchain; system packages such as SDL3 and CUDA are installed separately.
+CMake must be installed on the system and available on PATH before building the server or either client. On Debian, Ubuntu, or Raspberry Pi OS:
+
+```bash
+sudo apt update
+sudo apt install cmake
+cmake --version
+```
+
+For the native server, verify that the installed CMake version is at least 3.24. `make rust-setup` installs CMake and SDL3 development packages using `sudo apt update` and `sudo apt install -y cmake libsdl3-dev`.
+
+Run `make rust-setup` to install or update stable Rust, Cargo, rustfmt, and Clippy through rustup. See the [Rust environment guide](python.md) for PATH setup and dependency/build behavior. This command requires sudo access and an apt-based system providing `libsdl3-dev`. CUDA and the other build prerequisites are installed separately.
 
 ```bash
 make server-setup
 ```
 
-For the desktop viewer, install SDL3 development headers and run `make local-client-setup`. See [server prerequisites](../../server/README.md) and [client prerequisites](../../local_client/README.md).
+Both the desktop and Raspberry Pi viewers require SDL3 installed on the system, including its development package. On Debian/Ubuntu/Raspberry Pi OS releases that provide SDL3 packages:
+
+```bash
+sudo apt install libsdl3-dev
+pkg-config --modversion sdl3
+```
+
+SDL2 does not satisfy this dependency. If your release does not provide `libsdl3-dev`, use the source-build option in the [client prerequisites](../../local_client/README.md). `make rust-setup` installs this package automatically on supported apt-based systems. After installing it, run `make local-client-setup` or `make raspi-client-setup`. The server does not require SDL3. See also [server prerequisites](../../server/README.md).
 
 ## Run
 

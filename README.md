@@ -17,7 +17,7 @@ make local-client-setup
 make server-run
 ```
 
-`make rust-setup` installs or updates stable Rust, Cargo, rustfmt, and Clippy through rustup. It requires `curl` and internet access. System libraries such as SDL3 and CUDA are installed separately; see the [Rust environment guide](wiki/setup/python.md). The existing `*-setup` commands build optimized binaries using locked dependencies.
+`make rust-setup` installs or updates stable Rust, Cargo, rustfmt, and Clippy through rustup. It also runs `sudo apt update` and `sudo apt install -y cmake libsdl3-dev`. It requires an apt-based system providing SDL3, sudo access, `curl`, and internet access. CUDA is installed separately; see the [Rust environment guide](wiki/setup/python.md). The existing `*-setup` commands build optimized binaries using locked dependencies.
 
 In a second terminal:
 
