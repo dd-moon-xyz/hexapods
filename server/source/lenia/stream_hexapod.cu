@@ -418,6 +418,7 @@ int Lenia::streamHexapod(bool preview) {
         int scale; float x, y;
         if (!(std::cin >> scale >> x >> y) || scale < 1 || scale > 10 || !std::isfinite(x) || !std::isfinite(y) || x < 0 || y < 0 || x >= size || y >= size) return 1;
         w = initialize(size,scale,x,y,preview,false,0.f,generator);
+        if (!preview) w.health = 0.f;
     }
     try {
         Arena arena(count,size);

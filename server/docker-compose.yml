@@ -33,7 +33,7 @@ services:
 
     lenia-app:
         image: lenia-app
-        container_name: lenia-app
+        container_name: server-lenia
         build:
             context: .
             dockerfile: Dockerfile

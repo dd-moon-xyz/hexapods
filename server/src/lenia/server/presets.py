@@ -7,7 +7,7 @@ __all__ = ["default_config"]
 def default_config() -> dict:
     return {
         "action": "start", "simulation": "hexapod", "size": 1024, "fps": 60, "pixel_size": 1,
-        "dt": 0.1, "boundary": "circle",
+        "dt": 0.1, "boundary": "circle", "birth_rate_min": 1.0, "birth_rate_max": 5.0,
         "organisms": [
             {
                 "scale": 1,

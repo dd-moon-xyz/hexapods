@@ -1,6 +1,7 @@
 import asyncio
 import math
 import unittest
+from unittest.mock import AsyncMock, patch
 
 from lenia.server.arena import CircularArena
 from lenia.server.models import Start
@@ -27,14 +28,33 @@ class FakeWorker:
 
 class BirthTests(unittest.IsolatedAsyncioTestCase):
     def config(self):
-        return Start.model_validate({"action": "start", "boundary": "circle", "fps": 60, "organisms": [{}]})
+        return Start.model_validate({"action": "start", "boundary": "circle", "fps": 60, "birth_rate_min": 5, "birth_rate_max": 10, "organisms": [{}]})
+
+    async def test_concurrent_births_are_spaced_by_random_bounded_delays(self):
+        config = Start.model_validate({"action": "start", "organisms": [{}], "birth_rate_min": 2, "birth_rate_max": 4})
+        arena = CircularArena(config, FakeWorker(config))
+        times = {}
+
+        async def record(index):
+            times[index] = asyncio.get_running_loop().time()
+
+        arena._replace = AsyncMock(side_effect=record)
+        try:
+            with patch("lenia.server.arena.random.uniform", side_effect=(0.25, 0.5, 0.25)) as delay:
+                await asyncio.gather(*(arena.replace(index) for index in range(3)))
+
+            self.assertEqual(delay.call_args_list, [((0.25, 0.5),)] * 3)
+            self.assertGreaterEqual(times[1] - times[0], 0.5)
+            self.assertGreaterEqual(times[2] - times[1], 0.25)
+        finally:
+            await arena.close()
 
     async def test_dead_organism_sends_random_boundary_birth_to_native_worker(self):
         config = self.config()
         worker = FakeWorker(config)
         arena = CircularArena(config, worker)
         try:
-            for _ in range(6):
+            for _ in range(20):
                 await arena.frame()
 
             self.assertEqual(len(worker.replacements), 1)
@@ -47,11 +67,11 @@ class BirthTests(unittest.IsolatedAsyncioTestCase):
             await arena.close()
 
     async def test_dead_hexapod_is_replaced_with_hexapod(self):
-        config = Start.model_validate({"action": "start", "simulation": "hexapod", "boundary": "circle", "fps": 60, "organisms": [{}]})
+        config = Start.model_validate({"action": "start", "simulation": "hexapod", "boundary": "circle", "fps": 60, "birth_rate_min": 5, "birth_rate_max": 10, "organisms": [{}]})
         worker = FakeWorker(config)
         arena = CircularArena(config, worker)
         try:
-            for _ in range(6):
+            for _ in range(20):
                 await arena.frame()
 
             self.assertEqual(len(worker.replacements), 1)
@@ -64,7 +84,7 @@ class BirthTests(unittest.IsolatedAsyncioTestCase):
         worker = FakeWorker(config, mass=100.0)
         arena = CircularArena(config, worker)
         try:
-            for _ in range(6):
+            for _ in range(20):
                 await arena.frame()
 
             self.assertFalse(worker.replacements)
@@ -102,7 +122,7 @@ class BirthTests(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(worker.replacements)
                     self.assertFalse(arena.pending)
                     await arena.redirect(False, boosted)
-                    for _ in range(2):
+                    for _ in range(15):
                         await arena.frame()
 
                     self.assertEqual(len(worker.replacements), 1)

@@ -17,6 +17,15 @@ def worker(mode: str, count: int, dt: float):
         if process.stdout.readline() != b"READY\n":
             raise RuntimeError("CUDA worker failed to start")
 
+        if mode == "--stream-hexapod":
+            masses, image = frame(process, count)
+            assert all(mass <= .001 for mass in masses)
+            assert image.getbbox() is None
+            for index in range(count):
+                process.stdin.write(f"r {index} 1 128 128 0\n".encode())
+                process.stdin.flush()
+                assert process.stdout.readline() == b"READY\n"
+
         yield process
 
 
@@ -32,6 +41,18 @@ def frame(process, count: int, size: int = 256):
 class NativeHexapodTests(unittest.TestCase):
     def test_vector_escape_kills_at_edge_and_inward_does_not_revive(self):
         with worker("--stream-hexapod", 1, .2) as process:
+            process.stdin.write(b'v -1 0 0 1\n')
+            process.stdin.flush()
+            self.assertEqual(process.stdout.readline(), b'READY\n')
+            entered = False
+            for _ in range(1200):
+                _, image = frame(process, 1)
+                bounds = image.getbbox()
+                if bounds and 64 < (bounds[0] + bounds[2]) / 2 < 192:
+                    entered = True
+                    break
+
+            self.assertTrue(entered)
             for command in (b'v 1 0 1 2\n', b'v 0 -1 1 2\n', b'v -0.6 0.8 0 1\n', b'v 1 0 1 2\n'):
                 process.stdin.write(command)
                 process.stdin.flush()

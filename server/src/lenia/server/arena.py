@@ -19,6 +19,7 @@ class CircularArena:
         self.deadline = None
         self.outward = False
         self.birth_lock = asyncio.Lock()
+        self.birth_rate_lock = asyncio.Lock()
 
     async def frame(self) -> bytes:
         loop = asyncio.get_running_loop()
@@ -53,11 +54,12 @@ class CircularArena:
         return frame
 
     async def replace(self, index: int) -> None:
-        # Serialize births with steering so a queued replacement cannot run
-        # after outward mode has been acknowledged by the native worker.
-        async with self.birth_lock:
-            if not self.outward:
-                await self._replace(index)
+        async with self.birth_rate_lock:
+            await asyncio.sleep(random.uniform(1 / self.config.birth_rate_max, 1 / self.config.birth_rate_min))
+            # Keep steering responsive while a birth waits for its turn.
+            async with self.birth_lock:
+                if not self.outward:
+                    await self._replace(index)
 
     async def _replace(self, index: int) -> None:
         logger = logging.getLogger("uvicorn.error")

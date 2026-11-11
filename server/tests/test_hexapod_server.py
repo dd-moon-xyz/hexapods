@@ -15,10 +15,26 @@ class HexapodServerTests(unittest.TestCase):
 
         self.assertEqual(config.simulation, 'hexapod')
         self.assertEqual(config.boundary, 'circle')
+        self.assertEqual(config.birth_rate_min, 1)
+        self.assertEqual(config.birth_rate_max, 5)
         self.assertEqual(len(config.organisms), 50)
         self.assertTrue(all(item.scale == 1 for item in config.organisms))
         self.assertTrue(all(math.hypot(item.x - 512, item.y - 512) <= 401 for item in config.organisms))
         self.assertTrue(all(set(item.model_dump()) == {'scale', 'x', 'y'} for item in config.organisms))
+
+    def test_birth_rate_defaults_and_custom_bounds(self):
+        base = {'action': 'start', 'organisms': [{}]}
+        config = Start.model_validate(base)
+        self.assertEqual((config.birth_rate_min, config.birth_rate_max), (1, 5))
+        for minimum, maximum in ((2, 8), (3, 3), (.5, 2)):
+            config = Start.model_validate({**base, 'birth_rate_min': minimum, 'birth_rate_max': maximum})
+            self.assertEqual((config.birth_rate_min, config.birth_rate_max), (minimum, maximum))
+
+    def test_rejects_invalid_birth_rates(self):
+        base = {'action': 'start', 'organisms': [{}]}
+        for minimum, maximum in ((0, 5), (-1, 5), (5, 1), (1, 0), (math.inf, 5), (1, math.nan)):
+            with self.subTest(minimum=minimum, maximum=maximum), self.assertRaises(ValidationError):
+                Start.model_validate({**base, 'birth_rate_min': minimum, 'birth_rate_max': maximum})
 
     def test_rejects_other_simulations_and_catalog_fields(self):
         base = {'action': 'start', 'organisms': [{}]}

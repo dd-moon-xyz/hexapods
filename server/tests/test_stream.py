@@ -284,12 +284,12 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
             processes[process.pid] = process
             return process
 
-        config = {"action": "start", "boundary": "circle", "fps": 60, "organisms": [{}]}
+        config = {"action": "start", "boundary": "circle", "fps": 60, "birth_rate_min": 5, "birth_rate_max": 10, "organisms": [{}]}
         with self.assertLogs("uvicorn.error", level="INFO") as logs, patch("lenia.server.worker.asyncio.create_subprocess_exec", worker):
             async with connect(self.url) as viewer:
                 await viewer.send(json.dumps(config))
                 self.assertEqual(json.loads(await viewer.recv())["status"], "started")
-                for _ in range(8):
+                for _ in range(24):
                     for command in (
                         json.dumps({"action": "movement", "direction": "outward", "speed_multiplier": 1.0}),
                         json.dumps({"action": "movement", "direction": "outward", "speed_multiplier": 2.5}),
@@ -298,6 +298,12 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
                     ):
                         await viewer.send(command)
 
+                    await viewer.send("next")
+                    image = Image.open(io.BytesIO(await viewer.recv()))
+                    self.assertEqual(image.size, (512, 512))
+
+                await viewer.send("inward")
+                for _ in range(20):
                     await viewer.send("next")
                     image = Image.open(io.BytesIO(await viewer.recv()))
                     self.assertEqual(image.size, (512, 512))

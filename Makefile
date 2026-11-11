@@ -1,4 +1,4 @@
-.PHONY: local-client-run local-client-up local-client-stop raspi-client-run raspi-client-up server-run local-client-setup local-client local-client-record raspi-client-setup raspi-client raspi-client-start raspi-client-stop raspi-client-restart raspi-client-logs gif video desktop-client desktop-client-record core-build core-run devcontainer-build app-build app-run app-up app-stop app-restart client-setup client replay collect client-start client-stop client-restart client-logs replay-start replay-stop replay-restart replay-logs server-build server-up server-stop
+.PHONY: local-client-run local-client-up local-client-stop raspi-client-run raspi-client-up server-run local-client-setup local-client local-client-record raspi-client-setup raspi-client raspi-client-start raspi-client-stop raspi-client-restart raspi-client-logs gif video desktop-client desktop-client-record core-build core-run devcontainer-build app-build app-up app-stop app-restart client-setup client replay collect client-start client-stop client-restart client-logs replay-start replay-stop replay-restart replay-logs server-build server-up server-stop
 
 export PATH := $(HOME)/.local/bin:$(PATH)
 
@@ -43,9 +43,6 @@ devcontainer-build:
 
 app-build:
 	cd server && docker compose build lenia-app
-
-app-run:
-	cd server && docker compose run --rm --service-ports lenia-app
 
 app-up:
 	cd server && docker compose up -d lenia-app
@@ -105,7 +102,8 @@ server-build: app-build
 
 server-up: app-up
 
-server-run: app-run
+server-run:
+	cd server && docker compose run --rm --name server-lenia --service-ports lenia-app
 
 server-stop: app-stop
 

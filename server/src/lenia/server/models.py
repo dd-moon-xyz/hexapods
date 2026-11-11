@@ -44,6 +44,8 @@ class Start(BaseModel):
     simulation: Literal["hexapod"] = "hexapod"
     action: Literal["start"]
     population_updates: bool = False
+    birth_rate_min: float = Field(default=1.0, gt=0, allow_inf_nan=False)
+    birth_rate_max: float = Field(default=5.0, gt=0, allow_inf_nan=False)
     size: int = Field(default=512, ge=256, le=1024)
     output_size: int | None = Field(default=None, ge=1, le=1024)
     fps: int = Field(default=20, ge=1, le=60)
@@ -55,6 +57,9 @@ class Start(BaseModel):
 
     @model_validator(mode="after")
     def validate_world(self):
+        if self.birth_rate_min > self.birth_rate_max:
+            raise ValueError("Minimum birth rate must not exceed maximum birth rate")
+
         if any(item.x >= self.size or item.y >= self.size for item in self.organisms):
             raise ValueError("Hexapod positions must be inside the world")
 
