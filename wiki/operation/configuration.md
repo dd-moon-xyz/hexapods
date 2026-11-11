@@ -5,11 +5,11 @@ title: Client configuration
 
 # Client configuration
 
-Raspberry Pi live-client settings are validated by `pydantic-settings` in `raspi_client/src/lenia_client/settings.py`. Edit `raspi_client/.env`; `raspi_client/.env.example` lists every supported setting. On a fresh checkout, copy `.env.example` to `.env`. Environment variables override the file, including in Docker. Run `make raspi-client-restart` after changing settings for PM2. The Raspberry Pi client accepts configuration through the environment file. Both `make raspi-client-run` (terminal) and `make raspi-client-up` (PM2 background mode) use that same configuration.
+Raspberry Pi live-client settings are loaded and validated in Rust by `raspi_client/src/settings.rs`. Edit `raspi_client/.env`; `.env.example` lists the settings. Environment variables override the file. Run `make raspi-client-restart` after changes under PM2. Both `make raspi-client-run` and `make raspi-client-up` use the same configuration. The Pi imports the desktop Rust viewer library and adds camera, motion, and LED controls.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `LENIA_URL` | `ws://192.168.0.15:9876/ws` | WebSocket server. |
+| `LENIA_URL` | `ws://192.168.0.15:9877/ws` | WebSocket server. |
 | `LENIA_CONFIG` | Unset | Optional JSON simulation start file; otherwise fetch the server preset. |
 | `LENIA_WINDOWED` | `false` | Set `true` for an 800×800 window. |
 | `LENIA_MOTION_DEVICE` | `/dev/i2c-1` | Motion sensor I²C device. |
@@ -24,6 +24,6 @@ The client preserves the preset FPS, population, simulation resolution, and time
 
 The client keeps two frame requests in flight and replaces each request as its frame arrives. This allows the server to prepare the following frame during delivery and avoids waiting for a new round trip between simulation steps. The request count stays bounded; every received frame is displayed.
 
-The independent local viewer is configured with CLI options from `local_client/`: `uv run local-client --url ws://127.0.0.1:9876/ws`, `--config config.json`, and `--record capture.mp4`. Without `--config`, it fetches `/preset` from the selected server. It uses keyboard controls and a windowed display. `make local-client-run` runs in the terminal; `make local-client-up` starts the default local viewer through PM2. It uses no Pi environment or hardware settings.
+The desktop viewer accepts `--url ws://127.0.0.1:9877/ws`, `--config config.json`, and `--record capture.mp4` using `./local_client/target/release/local-client`. Without `--config`, it fetches `/preset`. Build with `make local-client-setup`; run with `make local-client-run`, `make local-client-record`, or `make local-client-up`. See [Rust client setup](../../local_client/README.md). The [Rust server](../../server/README.md) listens on port 9877 and has no delivery FPS cap. Its positive `fps` value is recording metadata. Set the Pi’s `LENIA_URL` to the Rust server address.
 
 [Section index](index.md) · [Wiki index](../documentation/overview.md)

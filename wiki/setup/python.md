@@ -1,9 +1,9 @@
 ---
 type: Documentation
-title: Python environment
+title: Rust client environment
 ---
 
-# Python environment
+# Rust client environment
 
 From the repository root (`/home/bastian/projects/hexapods`):
 
@@ -11,10 +11,10 @@ From the repository root (`/home/bastian/projects/hexapods`):
 make raspi-client-setup
 ```
 
-This uses the installed `uv` in `~/.local/bin` to download a uv-managed Python 3.14 and sync the client and its dependencies into `raspi_client/.venv`. The project requires uv-managed Python and does not inherit system Python packages or require the OS's `python3-venv` package.
+This builds the locked Rust release binary in `raspi_client/target/release/raspi-client`. The Pi imports the shared `client_core` Rust library for rendering, WebSocket streaming, capture, and replay. Python and uv are no longer required.
 
-The display dependency is `pygame-ce`, which supplies the `pygame` module and prebuilt Python 3.14 ARM64 wheels.
+Install Rust 1.85+, SDL3 development headers, a C compiler, CMake, and `pkg-config`. Install `imx500-all` for native camera inference and the existing firmware/model. Use a 64-bit Raspberry Pi OS desktop. The Pi client does not require CUDA.
 
-For local desktop testing, run `make local-client-setup`. It creates `local_client/.venv` with pygame-ce and websockets, independently of the server and Raspberry Pi environments. Run local tests from `local_client/` and hardware-client tests from `raspi_client/` using `uv run python -m unittest discover -s tests -v`.
+Desktop testing uses the [same Rust + SDL3 viewer](../../local_client/README.md). Use `make local-client-test` for shared protocol/capture tests and `make raspi-client-test` for Pi sensor logic. Real camera, I²C, and PWM operation must also be verified on the Pi.
 
 [Section index](index.md) · [Wiki index](../documentation/overview.md)

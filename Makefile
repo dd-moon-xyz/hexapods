@@ -1,19 +1,39 @@
-.PHONY: local-client-run local-client-up local-client-stop raspi-client-run raspi-client-up server-run local-client-setup local-client local-client-record raspi-client-setup raspi-client raspi-client-start raspi-client-stop raspi-client-restart raspi-client-logs gif video desktop-client desktop-client-record core-build core-run devcontainer-build app-build app-up app-stop app-restart client-setup client replay collect client-start client-stop client-restart client-logs replay-start replay-stop replay-restart replay-logs server-build server-up server-stop
+.PHONY: raspi-client-test server-setup server-run server-test server-up server-stop local-client-setup local-client-run local-client-record local-client-test local-client-up local-client-stop raspi-client-setup raspi-client-run replay collect raspi-client-up raspi-client-stop raspi-client-restart raspi-client-logs replay-start replay-stop replay-restart replay-logs
 
 export PATH := $(HOME)/.local/bin:$(PATH)
+CARGO ?= cargo
 
+server-setup:
+	cmake -S server/native -B server/native/build -DCMAKE_BUILD_TYPE=Release
+	cmake --build server/native/build --target lenia --parallel 2
+	cd server && $(CARGO) build --release --locked
 
-gif:
-	cd server && uv run python -m lenia.scripts.record_hexapod_cuda
+server-run:
+	cd server && ./target/release/server
 
-video:
-	cd server && uv run python -m lenia.scripts.record_hexapod_cuda --output resources/hexapod/propulsion.mp4 --speed 5 --story
+server-test:
+	cd server && $(CARGO) test --release --locked
+
+server-up:
+	cd server && pm2 start ecosystem.config.js --only server
+	pm2 save
+
+server-stop:
+	pm2 stop server
+	pm2 save
 
 local-client-setup:
-	cd local_client && uv sync
+	cd local_client && $(CARGO) build --release --locked
 
 local-client-run:
-	cd local_client && uv run local-client
+	cd local_client && ./target/release/local-client
+
+local-client-record:
+	cd local_client && ./target/release/local-client --record animation.mp4
+
+local-client-test:
+	cd local_client && $(CARGO) test --release --locked
+	$(CARGO) test --manifest-path client_core/Cargo.toml --release --locked
 
 local-client-up:
 	cd local_client && pm2 start ecosystem.config.js --only local-client
@@ -23,52 +43,22 @@ local-client-stop:
 	pm2 stop local-client
 	pm2 save
 
-local-client: local-client-run
-
-local-client-record:
-	cd local_client && uv run local-client --record animation.mp4
-
-desktop-client: local-client
-
-desktop-client-record: local-client-record
-
-core-build:
-	cd server && docker compose build lenia-core
-
-core-run:
-	cd server && docker compose run --rm lenia-core
-
-devcontainer-build:
-	cd server && docker compose build lenia-devcontainer
-
-app-build:
-	cd server && docker compose build lenia-app
-
-app-up:
-	cd server && docker compose up -d lenia-app
-
-app-stop:
-	cd server && docker compose stop lenia-app
-
-app-restart: app-stop app-up
+raspi-client-test:
+	cd raspi_client && $(CARGO) test --release --locked
 
 raspi-client-setup:
-	cd raspi_client && uv sync
+	cd raspi_client && $(CARGO) build --release --locked
 
 raspi-client-run:
-	cd raspi_client && uv run lenia-client
-
-raspi-client: raspi-client-run
-
-raspi-client-up: raspi-client-start
+	cd raspi_client && ./target/release/raspi-client
 
 replay:
-	cd raspi_client && uv run lenia-replay
+	cd raspi_client && ./target/release/raspi-client replay
 
 collect:
-	cd raspi_client && uv run lenia-collect
+	cd raspi_client && ./target/release/raspi-client collect
 
-raspi-client-start:
+raspi-client-up:
 	cd raspi_client && pm2 start ecosystem.config.js --only lenia-client
 	pm2 save
 
@@ -98,27 +88,6 @@ replay-restart:
 replay-logs:
 	pm2 logs lenia-replay
 
-server-build: app-build
-
-server-up: app-up
-
-server-run:
-	cd server && docker compose run --rm --name server-lenia --service-ports lenia-app
-
-server-stop: app-stop
-
-raspi-client-run replay collect raspi-client-start raspi-client-restart replay-start replay-restart: export XDG_RUNTIME_DIR ?= /run/user/$(shell id -u)
-raspi-client-run replay collect raspi-client-start raspi-client-restart replay-start replay-restart: export WAYLAND_DISPLAY ?= wayland-0
-raspi-client-run replay collect raspi-client-start raspi-client-restart replay-start replay-restart: export SDL_VIDEODRIVER := wayland
-
-client-setup: raspi-client-setup
-
-client: raspi-client
-
-client-start: raspi-client-start
-
-client-stop: raspi-client-stop
-
-client-restart: raspi-client-restart
-
-client-logs: raspi-client-logs
+raspi-client-run replay collect raspi-client-up raspi-client-restart replay-start replay-restart: export XDG_RUNTIME_DIR ?= /run/user/$(shell id -u)
+raspi-client-run replay collect raspi-client-up raspi-client-restart replay-start replay-restart: export WAYLAND_DISPLAY ?= wayland-0
+raspi-client-run replay collect raspi-client-up raspi-client-restart replay-start replay-restart: export SDL_VIDEO_DRIVER := wayland

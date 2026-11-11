@@ -1,0 +1,16 @@
+[package]
+name = "raspi-client"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+
+[dependencies]
+anyhow = "1"
+libc = "0.2"
+client-core = { path = "../client_core" }
+serde_json = "1"
+tempfile = "3"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

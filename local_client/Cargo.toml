@@ -1,0 +1,18 @@
+[package]
+name = "local-client"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Desktop entry point and keyboard controls for the Hexapods viewer"
+
+[dependencies]
+anyhow = "1"
+client-core = { path = "../client_core" }
+sdl3 = "0.22.1"
+
+[features]
+bundled-sdl = ["client-core/bundled-sdl"]
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

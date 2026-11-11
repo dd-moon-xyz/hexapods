@@ -1,20 +1,43 @@
-# Hexapods Server
+# Hexapods Rust Server
 
-Headless CUDA simulation of six-arm hexapods, streamed as JPEG frames over WebSocket. Each viewer gets an independent circular arena with GPU gait animation, fluid trails, contact injury, and replacement births. Camera proximity and motion commands steer the creatures.
+HTTP/WebSocket server written in Rust with Axum, Tokio, and libjpeg-turbo. The C++/CUDA simulation core lives in `native/`. Configuration validation, connection handling, organism replacement, image processing, and JPEG encoding run in Rust.
+
+The Rust server has **no frame-rate pacing or FPS ceiling**. Each `next` request advances the simulation and returns a fresh JPEG as soon as CUDA, encoding, and the connection allow. It does not repeat a prepared image or sleep between frames.
+
+Install Rust 1.85+, a C/C++ compiler, CMake, `pkg-config`, and NASM on x86 for the bundled SIMD JPEG library. The CUDA worker also needs the [native server toolchain](../wiki/setup/linux.md) and an NVIDIA GPU with a compatible driver at runtime. SDL, Python, and a graphical desktop are not required by this server.
 
 From the repository root:
 
 ```bash
-make server-build
-make server-up
+make server-setup
+make server-run
 ```
 
-The host needs an NVIDIA GPU, a compatible driver, Docker Compose, and NVIDIA Container Toolkit. Open `http://<server-LAN-IP>:9876/` for the browser viewer. Use `make server-stop` to stop the server. See [Linux setup](../wiki/setup/linux.md) and [the wiki](../wiki/documentation/overview.md).
+Setup builds the existing CUDA executable and the locked Rust release binary. The default address is `0.0.0.0:9877`. The API is intended for a trusted local network and has no authentication.
 
-The default preset contains 50 hexapods at 60 FPS in a 1024×1024 arena. The server supports only hexapod simulation and circular boundaries. No catalog, organism types, fonts, OpenGL, or cuFFT are required. Existing Python package and executable names remain `lenia`.
+Connect the Rust desktop client:
 
-Rebuild and restart the server and clients together after native protocol changes. Saved JSON configurations must omit `type`, `velocity`, and `excluded_types`; each entry in `organisms` contains only `scale`, `x`, and `y`. See [architecture and protocol](../wiki/simulation/architecture.md).
+```bash
+cd local_client
+./target/release/local-client --url ws://127.0.0.1:9877/ws
+```
 
-## Credits
+From `server/`, change the listening address or select another native executable:
 
-This project originated as a fork of [DeepQuantum/Lenia](https://github.com/DeepQuantum/Lenia), based on work by Bert Wang-Chak Chan. The current runtime uses the custom CUDA hexapod renderer. See [project credits](../wiki/documentation/credits.md).
+```bash
+./target/release/server --bind 127.0.0.1:9877 --worker native/build/lenia
+```
+
+`GET /` serves the existing browser viewer. `GET /preset` returns 50 organisms in a 1024×1024 circular world. `/ws` accepts the existing start configuration, `next`, `stop`, radial controls, and vector movement JSON. Optional population messages precede JPEG frames. World/output sizes, pixelation, birth-rate bounds, and interaction-count bounds follow the existing API. Unknown fields and invalid values are rejected.
+
+The legacy `fps` start field is retained as a positive recording-rate hint, defaulting to 60. It neither throttles delivery nor imposes an upper bound on delivered FPS; the start response includes `fps_limit: null`. A client can record at that rate independently of actual delivery throughput. The native worker's separate reference value of 60 is used only by its injury integration and never sleeps or limits rendering. The simulation still advances by its configured `dt` per requested frame, so uncapped playback can advance simulation time faster as delivery speeds up.
+
+Every connection owns a separate native process, frame buffers, JPEG compressor, and birth tasks. Initial slots remain inactive until their serialized birth delays expire. Dead slots queue replacements after five empty frames; outward escape suppresses births, and inward movement restores them. Frame generation has no pacing sleep; only organism births use the configured birth delays. Disconnects, errors, and shutdown cancel pending births and terminate native workers.
+
+The server flips bottom-up CUDA RGB rows, applies optional box-filter pixelation/resizing, and encodes quality-80 JPEGs with 4:2:0 subsampling. Smaller unpixelated outputs use the CUDA worker's existing GPU resizing command. Accepted TCP connections enable `TCP_NODELAY` to avoid delayed delivery of population metadata followed by JPEG frames.
+
+Use `make server-test` for validation, image orientation/resizing, native command framing, birth gating, and HTTP/WebSocket integration tests. Tests use a synthetic native-protocol fixture and do not need CUDA. `cargo fmt --check` and `cargo clippy --release --locked --all-targets -- -D warnings` check formatting and code quality. Real performance comparisons must use the actual CUDA worker, identical scenes, and the same output resolution; synthetic image streaming measures client capacity only.
+
+A real-CUDA comparison on a GTX 1060 6 GB used a local measuring WebSocket relay, three alternating runs per client, 150 warmup frames, and six measured seconds per run at 1024×1024 with 50 live organisms. The benchmark set birth rates to 1000 and interaction allowances to 1,000,000 to keep the population constant, with quality-80 JPEGs and no frame pacing. Python averaged **91.46 FPS** (91.06–91.75), and Rust averaged **91.99 FPS** (90.63–93.23). They were effectively tied in this workload. A separate 256×256 one-organism probe delivered about 692 FPS with `fps: 1`, verifying that the legacy recording hint does not throttle delivery. These are hardware- and scene-specific stream-throughput measurements, not general language performance claims.
+
+For background mode, install PM2, run `make server-setup`, then `make server-up`. Stop it with `make server-stop`. Its distinct PM2 process name is `server`. Ctrl+C stops foreground mode and cleans up active simulations.
