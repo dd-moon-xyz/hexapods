@@ -11,10 +11,13 @@ Interactive GPU hexapod simulations streamed over WebSocket. The Rust server use
 Install the [server prerequisites](server/README.md) and [SDL3 client prerequisites](local_client/README.md), then run from the repository root:
 
 ```bash
+make rust-setup
 make server-setup
 make local-client-setup
 make server-run
 ```
+
+`make rust-setup` installs or updates stable Rust, Cargo, rustfmt, and Clippy through rustup. It requires `curl` and internet access. System libraries such as SDL3 and CUDA are installed separately; see the [Rust environment guide](wiki/setup/python.md). The existing `*-setup` commands build optimized binaries using locked dependencies.
 
 In a second terminal:
 

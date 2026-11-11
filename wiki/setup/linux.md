@@ -9,6 +9,8 @@ title: Linux Build and Run
 
 Install Rust 1.85+, a C/C++ compiler, CMake 3.24+, `pkg-config`, NASM on x86, and a CUDA Toolkit with a compatible C++20 host compiler. Runtime needs an NVIDIA GPU and compatible driver.
 
+Run `make rust-setup` to install or update stable Rust, Cargo, rustfmt, and Clippy through rustup. See the [Rust environment guide](python.md) for PATH setup and dependency/build behavior. This command installs the Rust toolchain; system packages such as SDL3 and CUDA are installed separately.
+
 ```bash
 make server-setup
 ```

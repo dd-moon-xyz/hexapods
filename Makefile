@@ -1,7 +1,21 @@
 .PHONY: raspi-client-test server-setup server-run server-test server-up server-stop local-client-setup local-client-run local-client-record local-client-test local-client-up local-client-stop raspi-client-setup raspi-client-run replay collect raspi-client-up raspi-client-stop raspi-client-restart raspi-client-logs replay-start replay-stop replay-restart replay-logs
 
-export PATH := $(HOME)/.local/bin:$(PATH)
+export PATH := $(or $(CARGO_HOME),$(HOME)/.cargo)/bin:$(HOME)/.local/bin:$(PATH)
 CARGO ?= cargo
+
+.PHONY: rust-setup
+rust-setup:
+	@set -eu; \
+	if ! command -v rustup >/dev/null 2>&1; then \
+		installer=$$(mktemp); \
+		trap 'rm -f "$$installer"' EXIT HUP INT TERM; \
+		curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o "$$installer"; \
+		sh "$$installer" -y --profile minimal --default-toolchain stable; \
+	fi; \
+	rustup toolchain install stable --profile minimal --component rustfmt --component clippy; \
+	rustup default stable; \
+	rustc --version; \
+	$(CARGO) --version
 
 server-setup:
 	cmake -S server/native -B server/native/build -DCMAKE_BUILD_TYPE=Release
