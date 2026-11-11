@@ -1,0 +1,7 @@
+.venv/
+.env
+__pycache__/
+*.egg-info/
+*.log
+uv.lock
+recordings/
