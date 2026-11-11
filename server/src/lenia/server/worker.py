@@ -34,7 +34,7 @@ class SimulationWorker:
             )
 
     async def start(self) -> None:
-        header = f"{self.config.size} {self.config.fps} {self.config.dt} {self.config.space_speed_multiplier} {len(self.config.organisms)}\n"
+        header = f"{self.config.size} {self.config.fps} {self.config.dt} {self.config.space_speed_multiplier} {len(self.config.organisms)} {self.config.interaction_count_min} {self.config.interaction_count_max}\n"
         organisms = "".join(
             f"{self.organism_line(item)}\n" for item in self.config.organisms
         )

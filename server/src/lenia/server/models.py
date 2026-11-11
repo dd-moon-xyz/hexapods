@@ -46,6 +46,8 @@ class Start(BaseModel):
     population_updates: bool = False
     birth_rate_min: float = Field(default=1.0, gt=0, allow_inf_nan=False)
     birth_rate_max: float = Field(default=5.0, gt=0, allow_inf_nan=False)
+    interaction_count_min: int = Field(default=1, ge=1, le=2147483647)
+    interaction_count_max: int = Field(default=10, ge=1, le=2147483647)
     size: int = Field(default=512, ge=256, le=1024)
     output_size: int | None = Field(default=None, ge=1, le=1024)
     fps: int = Field(default=20, ge=1, le=60)
@@ -57,6 +59,9 @@ class Start(BaseModel):
 
     @model_validator(mode="after")
     def validate_world(self):
+        if self.interaction_count_min > self.interaction_count_max:
+            raise ValueError("Minimum interaction count must not exceed maximum interaction count")
+
         if self.birth_rate_min > self.birth_rate_max:
             raise ValueError("Minimum birth rate must not exceed maximum birth rate")
 

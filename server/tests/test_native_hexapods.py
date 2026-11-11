@@ -10,9 +10,9 @@ from lenia.server.worker import ROOT
 
 
 @contextmanager
-def worker(mode: str, count: int, dt: float):
+def worker(mode: str, count: int, dt: float, interactions: int = 1):
     with subprocess.Popen([str(ROOT / "build/lenia"), mode], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as process:
-        process.stdin.write((f"256 60 {dt} 2 {count}\n" + "1 128 128\n" * count).encode())
+        process.stdin.write((f"256 60 {dt} 2 {count} {interactions} {interactions}\n" + "1 128 128\n" * count).encode())
         process.stdin.flush()
         if process.stdout.readline() != b"READY\n":
             raise RuntimeError("CUDA worker failed to start")
@@ -89,6 +89,13 @@ class NativeHexapodTests(unittest.TestCase):
                 process.stdin.write(b"i")
                 process.stdin.flush()
                 self.assertEqual(process.stdout.readline(), b"READY\n")
+
+    def test_continuous_contact_only_consumes_one_interaction(self):
+        with worker("--stream-hexapod-preview", 2, .005, interactions=2) as process:
+            for _ in range(200):
+                masses, _ = frame(process, 2)
+
+            self.assertTrue(all(value > .001 for value in masses))
 
     def test_overlapping_bodies_fade_to_death(self):
         with worker("--stream-hexapod-preview", 2, .005) as process:

@@ -30,6 +30,16 @@ class HexapodServerTests(unittest.TestCase):
             config = Start.model_validate({**base, 'birth_rate_min': minimum, 'birth_rate_max': maximum})
             self.assertEqual((config.birth_rate_min, config.birth_rate_max), (minimum, maximum))
 
+    def test_interaction_bounds(self):
+        base = {'action': 'start', 'organisms': [{}]}
+        config = Start.model_validate(base)
+        self.assertEqual((config.interaction_count_min, config.interaction_count_max), (1, 10))
+        config = Start.model_validate({**base, 'interaction_count_min': 3, 'interaction_count_max': 3})
+        self.assertEqual((config.interaction_count_min, config.interaction_count_max), (3, 3))
+        for minimum, maximum in ((0, 10), (5, 1), (1, 0), (1.5, 10), (True, 10)):
+            with self.subTest(minimum=minimum, maximum=maximum), self.assertRaises(ValidationError):
+                Start.model_validate({**base, 'interaction_count_min': minimum, 'interaction_count_max': maximum})
+
     def test_rejects_invalid_birth_rates(self):
         base = {'action': 'start', 'organisms': [{}]}
         for minimum, maximum in ((0, 5), (-1, 5), (5, 1), (1, 0), (math.inf, 5), (1, math.nan)):

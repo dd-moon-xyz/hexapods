@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <random>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -16,7 +17,8 @@ namespace {
         float2 position, previous, roots[6], points[6][4];
         Foot feet[6];
         float heading, zoom, time, trajectory, health, stress;
-        int palette;
+        int palette, interactions;
+        unsigned int touching[4];
     };
     void checked(cudaError_t result) {
         if (result != cudaSuccess) throw std::runtime_error(cudaGetErrorString(result));
@@ -304,11 +306,14 @@ namespace {
         for (int channel = 0; channel < 3; ++channel)
             output[(y * outputSize + x) * 3 + channel] = Lenia::boxVertical(rows, size, outputSize, x, y, channel);
     }
-    __global__ void contact(const Walker* walkers, const float* density, float2* totals, int count) {
+    __global__ void contact(Walker* walkers, const float* density, float2* totals, int count) {
         int index = blockIdx.x;
         if (index >= count) return;
         __shared__ float overlaps[256], masses[256];
-        const Walker& own = walkers[index];
+        Walker& own = walkers[index];
+        __shared__ unsigned int touching[4];
+        if (threadIdx.x < 4) touching[threadIdx.x] = 0;
+        __syncthreads();
         float overlap = 0.f, mass = 0.f;
         for (int pixel = threadIdx.x; pixel < RES * RES; pixel += blockDim.x) {
             float value = density[index * RES * RES + pixel];
@@ -323,8 +328,10 @@ namespace {
                 const Walker& other = walkers[peer];
                 float2 delta = sub(mul(world, 1.f / other.zoom), other.position);
                 if (fabsf(delta.x) >= 350.f || fabsf(delta.y) >= 350.f) continue;
-                incoming += sample(density + peer * RES * RES, delta.x * RES / 700.f + RES * .5f - .5f,
+                float value = sample(density + peer * RES * RES, delta.x * RES / 700.f + RES * .5f - .5f,
                                    delta.y * RES / 700.f + RES * .5f - .5f) * other.health;
+                incoming += value;
+                if (value > .02f) atomicOr(touching + peer / 32, 1u << (peer % 32));
             }
             overlap += value * fminf(1.f, incoming);
         }
@@ -334,19 +341,27 @@ namespace {
             if (threadIdx.x < offset) { overlaps[threadIdx.x] += overlaps[threadIdx.x + offset]; masses[threadIdx.x] += masses[threadIdx.x + offset]; }
             __syncthreads();
         }
-        if (threadIdx.x == 0) totals[index] = make_float2(overlaps[0], masses[0]);
+        if (threadIdx.x == 0) {
+            for (int group = 0; group < 4; ++group) {
+                own.interactions = max(0, own.interactions - __popc(touching[group] & ~own.touching[group]));
+                own.touching[group] = touching[group];
+            }
+            totals[index] = make_float2(overlaps[0], masses[0]);
+        }
     }
     __global__ void damage(Walker* walkers, const float2* totals, float* masses, int count, float dt) {
         int index = blockIdx.x * blockDim.x + threadIdx.x;
         if (index >= count) return;
         Walker& w = walkers[index];
         float exposure = clip(totals[index].x / fmaxf(totals[index].y,.001f),0.f,1.f);
-        w.stress = fminf(1.f,w.stress + dt * exposure * 3.f);
-        w.health = fmaxf(0.f,w.health - dt * (.10f * w.stress + .375f * exposure));
+        if (w.interactions == 0) {
+            w.stress = fminf(1.f,w.stress + dt * exposure * 3.f);
+            w.health = fmaxf(0.f,w.health - dt * (.10f * w.stress + .375f * exposure));
+        }
         masses[index] = totals[index].y * w.health;
     }
     Walker initialize(int size, int scale, float x, float y, bool preview, bool spawning,
-                      float spawnAngle, std::mt19937& generator) {
+                      float spawnAngle, std::mt19937& generator, int interactionMin, int interactionMax) {
         Walker w{};
         w.zoom = std::min(size / 3.f, std::uniform_real_distribution<float>(96.f,224.f)(generator) * scale) / 700.f;
         w.position = make_float2(x / w.zoom, y / w.zoom);
@@ -355,6 +370,7 @@ namespace {
         w.palette = std::uniform_int_distribution<int>(0,4)(generator);
         if (preview) { w.zoom = size / 1050.f; w.position = make_float2(0.f, 0.f); w.previous = w.position; w.heading = -PI * .25f; w.palette = 0; }
         w.health = 1.f;
+        w.interactions = std::uniform_int_distribution<int>(interactionMin,interactionMax)(generator);
         if (spawning) {
             float radius = size * .5f + 700.f * w.zoom * .707107f + 8.f;
             w.position = make_float2((size * .5f + radius * cosf(spawnAngle)) / w.zoom,
@@ -412,12 +428,21 @@ int Lenia::streamHexapod(bool preview) {
     int size, fps, count;
     float dt, boost;
     if (!(std::cin >> size >> fps >> dt >> boost >> count) || size < 256 || size > 1024 || fps < 1 || fps > 60 || count < 1 || count > 100 || !std::isfinite(dt) || dt <= 0 || dt > .2f || !std::isfinite(boost) || boost < 1) return 1;
+    int interactionMin = 1, interactionMax = 10;
+    std::string bounds;
+    std::getline(std::cin, bounds);
+    if (bounds.find_first_not_of(" \t\r") != std::string::npos) {
+        std::istringstream settings(bounds);
+        if (!(settings >> interactionMin >> interactionMax) || interactionMin < 1 || interactionMax < interactionMin) return 1;
+        settings >> std::ws;
+        if (!settings.eof()) return 1;
+    }
     std::vector<Walker> walkers(count);
     std::mt19937 generator(std::random_device{}());
     for (auto& w : walkers) {
         int scale; float x, y;
         if (!(std::cin >> scale >> x >> y) || scale < 1 || scale > 10 || !std::isfinite(x) || !std::isfinite(y) || x < 0 || y < 0 || x >= size || y >= size) return 1;
-        w = initialize(size,scale,x,y,preview,false,0.f,generator);
+        w = initialize(size,scale,x,y,preview,false,0.f,generator,interactionMin,interactionMax);
         if (!preview) w.health = 0.f;
     }
     try {
@@ -484,7 +509,7 @@ int Lenia::streamHexapod(bool preview) {
                 int index, scale; float x,y,angle;
                 if (!(std::cin >> index >> scale >> x >> y >> angle) ||
                     index < 0 || index >= count || scale < 1 || scale > 10 || !std::isfinite(angle)) return 1;
-                Walker replacement = initialize(size,scale,x,y,preview,true,angle,generator);
+                Walker replacement = initialize(size,scale,x,y,preview,true,angle,generator,interactionMin,interactionMax);
                 if (vectorMode) replacement.trajectory = vectorHeading;
                 checked(cudaMemcpy(arena.walkers + index,&replacement,sizeof(Walker),cudaMemcpyHostToDevice));
                 checked(cudaMemset(arena.wake + index * RES * RES,0,RES * RES * sizeof(float)));

@@ -32,6 +32,13 @@ class WorkerResizeTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(await asyncio.wait_for(worker.frame(), 1), raw)
             self.assertEqual(worker.masses, (float(value),))
 
+    async def test_start_passes_interaction_bounds(self):
+        worker = self.worker(interaction_count_min=3, interaction_count_max=7)
+        worker.process.stdout.feed_data(b"READY\n")
+        await worker.start()
+        header = worker.process.stdin.write.call_args_list[0].args[0].splitlines()[0]
+        self.assertTrue(header.endswith(b" 1 3 7"))
+
     async def test_cpu_fallback_for_pixelation_and_unscaled_or_enlarged_output(self):
         for options in ({}, {"output_size":1024}, {"output_size":480,"pixel_size":2}, {"size":512,"output_size":800,"organisms":[{"x":128,"y":128}]}):
             with self.subTest(options=options):
