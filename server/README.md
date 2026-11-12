@@ -28,7 +28,7 @@ From `server/`, change the listening address or select another native executable
 ./target/release/server --bind 127.0.0.1:9877 --worker native/build/lenia
 ```
 
-`GET /` serves the existing browser viewer. `GET /preset` returns 50 organisms in a 1024×1024 circular world. `/ws` accepts the existing start configuration, `next`, `stop`, radial controls, and vector movement JSON. Optional population messages precede JPEG frames. World/output sizes, pixelation, birth-rate bounds, and interaction-count bounds follow the existing API. Unknown fields and invalid values are rejected.
+`GET /` serves the existing browser viewer. `GET /preset` returns 50 organisms in a 1024×1024 circular world. `/ws` accepts the existing start configuration, `next`, `stop`, radial controls, and vector movement JSON. Optional population messages precede JPEG frames. World/output sizes, pixelation, birth-rate bounds, scale bounds (`scale_min`/`scale_max`, default random float 1.0–1.1), and interaction-count bounds follow the existing API. Unknown fields and invalid values are rejected.
 
 The legacy `fps` start field is retained as a positive recording-rate hint, defaulting to 60. It neither throttles delivery nor imposes an upper bound on delivered FPS; the start response includes `fps_limit: null`. A client can record at that rate independently of actual delivery throughput. The native worker's separate reference value of 60 is used only by its injury integration and never sleeps or limits rendering. The simulation still advances by its configured `dt` per requested frame, so uncapped playback can advance simulation time faster as delivery speeds up.
 

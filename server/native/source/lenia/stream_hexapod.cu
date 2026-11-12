@@ -360,7 +360,7 @@ namespace {
         }
         masses[index] = totals[index].y * w.health;
     }
-    Walker initialize(int size, int scale, float x, float y, bool preview, bool spawning,
+    Walker initialize(int size, float scale, float x, float y, bool preview, bool spawning,
                       float spawnAngle, std::mt19937& generator, int interactionMin, int interactionMax) {
         Walker w{};
         w.zoom = std::min(size / 3.f, std::uniform_real_distribution<float>(96.f,224.f)(generator) * scale) / 700.f;
@@ -440,8 +440,8 @@ int Lenia::streamHexapod(bool preview) {
     std::vector<Walker> walkers(count);
     std::mt19937 generator(std::random_device{}());
     for (auto& w : walkers) {
-        int scale; float x, y;
-        if (!(std::cin >> scale >> x >> y) || scale < 1 || scale > 10 || !std::isfinite(x) || !std::isfinite(y) || x < 0 || y < 0 || x >= size || y >= size) return 1;
+        float scale, x, y;
+        if (!(std::cin >> scale >> x >> y) || !std::isfinite(scale) || scale < 1 || scale > 10 || !std::isfinite(x) || !std::isfinite(y) || x < 0 || y < 0 || x >= size || y >= size) return 1;
         w = initialize(size,scale,x,y,preview,false,0.f,generator,interactionMin,interactionMax);
         if (!preview) w.health = 0.f;
     }
@@ -506,9 +506,9 @@ int Lenia::streamHexapod(bool preview) {
                 std::cout << "READY\n" << std::flush; continue;
             }
             if (command == 'r') {
-                int index, scale; float x,y,angle;
+                int index; float scale,x,y,angle;
                 if (!(std::cin >> index >> scale >> x >> y >> angle) ||
-                    index < 0 || index >= count || scale < 1 || scale > 10 || !std::isfinite(angle)) return 1;
+                    index < 0 || index >= count || !std::isfinite(scale) || scale < 1 || scale > 10 || !std::isfinite(angle)) return 1;
                 Walker replacement = initialize(size,scale,x,y,preview,true,angle,generator,interactionMin,interactionMax);
                 if (vectorMode) replacement.trajectory = vectorHeading;
                 checked(cudaMemcpy(arena.walkers + index,&replacement,sizeof(Walker),cudaMemcpyHostToDevice));

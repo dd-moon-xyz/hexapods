@@ -72,6 +72,10 @@ fn validates_configuration_without_fps_cap() {
     }
     for update in [
         json!({"fps":0}),
+        json!({"scale_min":0}),
+        json!({"scale_min":3,"scale_max":2}),
+        json!({"scale_max":11}),
+        json!({"scale_min":1.6,"scale_max":1.5}),
         json!({"size":255}),
         json!({"size":1025}),
         json!({"birth_rate_min":5,"birth_rate_max":1}),
@@ -95,6 +99,7 @@ fn validates_configuration_without_fps_cap() {
     }
     assert!(Start::parse(r#"{"organisms":[{}]}"#).is_err());
     preset().validate().unwrap();
+    assert_eq!((preset().scale_min, preset().scale_max), (1.0, 1.1));
 }
 
 #[test]
@@ -153,8 +158,11 @@ async fn worker_reads_metadata_and_negotiates_gpu_resize() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn outward_gates_births_and_inward_resumes_them() {
-    let (_directory, path) = fixture(false);
-    let mut arena = Arena::start(&path, config()).await.unwrap();
+    let (directory, path) = fixture(false);
+    let mut start = config();
+    start.scale_min = 1.25;
+    start.scale_max = 1.25;
+    let mut arena = Arena::start(&path, start).await.unwrap();
     arena.movement("o\n", true).await.unwrap();
     for _ in 0..8 {
         assert_eq!(arena.frame().await.unwrap().1, 0);
@@ -163,6 +171,12 @@ async fn outward_gates_births_and_inward_resumes_them() {
     arena.frame().await.unwrap();
     sleep(Duration::from_millis(20)).await;
     assert_eq!(arena.frame().await.unwrap().1, 1);
+    let commands = fs::read_to_string(directory.path().join("commands")).unwrap();
+    assert!(
+        commands
+            .lines()
+            .any(|line| line.starts_with("r 0 1.25 128 128 "))
+    );
     arena.close().await.unwrap();
 }
 

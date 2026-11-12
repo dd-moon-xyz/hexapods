@@ -21,6 +21,7 @@ pub struct Arena {
     birth_rate_lock: Arc<Mutex<()>>,
     outward: Arc<AtomicBool>,
     dead_frames: Vec<u8>,
+    living: Vec<bool>,
     pending: Vec<Option<JoinHandle<Result<()>>>>,
     encoder: Encoder,
 }
@@ -36,6 +37,7 @@ impl Arena {
             birth_rate_lock: Arc::new(Mutex::new(())),
             outward: Arc::new(AtomicBool::new(false)),
             dead_frames: vec![0; count],
+            living: vec![false; count],
             pending: (0..count).map(|_| None).collect(),
             encoder: Encoder::new()?,
         })
@@ -63,6 +65,13 @@ impl Arena {
             } else {
                 0
             };
+            if *mass > 0.001 {
+                self.living[index] = true;
+            }
+            if self.dead_frames[index] == 5 && self.living[index] {
+                eprintln!("Hexapod died: slot={index}");
+                self.living[index] = false;
+            }
             if self.dead_frames[index] >= 5 && !self.outward.load(Ordering::Relaxed) {
                 self.pending[index] = Some(self.schedule_birth(index));
             }
@@ -94,13 +103,15 @@ impl Arena {
             sleep(Duration::try_from_secs_f64(seconds).context("Invalid birth interval")?).await;
             let _birth = birth_lock.lock().await;
             if !outward.load(Ordering::Relaxed) {
+                let scale = rand::random_range(config.scale_min..=config.scale_max);
                 let angle = rand::random::<f64>() * std::f64::consts::TAU;
                 let mut worker = worker.lock().await;
                 timeout(
                     Duration::from_secs(30),
-                    worker.command(&format!("r {index} 1 128 128 {angle}\n")),
+                    worker.command(&format!("r {index} {scale} 128 128 {angle}\n")),
                 )
                 .await??;
+                eprintln!("Hexapod born: slot={index} scale={scale}");
             }
             Ok(())
         })

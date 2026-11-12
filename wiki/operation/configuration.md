@@ -20,7 +20,7 @@ Raspberry Pi live-client settings are loaded and validated in Python by `client/
 
 For example, set `LENIA_PERSON_PROXIMITY=0.35` to react farther away. These settings configure the client locally; the optional JSON file configures the server simulation.
 
-The client preserves the preset FPS, population, simulation resolution, and timestep. It adds `output_size` matching the shorter display dimension, requesting 800×800 JPEGs on the Raspberry Pi while retaining the 1024×1024 simulation. It adds no client FPS cap.
+Without an explicit configuration file, both clients fetch the server preset and use its default 50 hexapod slots. An explicit `organisms` list still controls the population when supplied. Start configuration fields `scale_min` and `scale_max` set the inclusive random scale range for every birth, defaulting to 1.0 and 1.1. For example, `"scale_min": 2, "scale_max": 2` fixes all birth scales at 2; allowed bounds are finite ordered numbers from 1 through 10. Both clients pass these fields through to the server. The client preserves the preset FPS, population, simulation resolution, and timestep. It adds `output_size` matching the shorter display dimension, requesting 800×800 JPEGs on the Raspberry Pi while retaining the 1024×1024 simulation. It adds no client FPS cap.
 
 The client keeps two frame requests in flight and replaces each request as its frame arrives. This allows the server to prepare the following frame during delivery and avoids waiting for a new round trip between simulation steps. The request count stays bounded; every received frame is displayed.
 

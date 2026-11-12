@@ -5,7 +5,7 @@ use std::time::Duration;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Organism {
-    pub scale: u32,
+    pub scale: f64,
     pub x: u32,
     pub y: u32,
 }
@@ -13,7 +13,7 @@ pub struct Organism {
 impl Default for Organism {
     fn default() -> Self {
         Self {
-            scale: 1,
+            scale: 1.0,
             x: 128,
             y: 128,
         }
@@ -33,6 +33,8 @@ pub struct Start {
     pub dt: f64,
     pub space_speed_multiplier: f64,
     pub population_updates: bool,
+    pub scale_min: f64,
+    pub scale_max: f64,
     pub birth_rate_min: f64,
     pub birth_rate_max: f64,
     pub interaction_count_min: u32,
@@ -53,6 +55,8 @@ impl Default for Start {
             dt: 0.1,
             space_speed_multiplier: 2.0,
             population_updates: false,
+            scale_min: 1.0,
+            scale_max: 1.1,
             birth_rate_min: 1.0,
             birth_rate_max: 5.0,
             interaction_count_min: 1,
@@ -98,6 +102,14 @@ impl Start {
             "Space speed multiplier must be at least 1"
         );
         ensure!(
+            self.scale_min.is_finite()
+                && self.scale_max.is_finite()
+                && self.scale_min >= 1.0
+                && self.scale_min <= self.scale_max
+                && self.scale_max <= 10.0,
+            "Scale bounds must be finite, ordered numbers between 1 and 10"
+        );
+        ensure!(
             self.birth_rate_min.is_finite()
                 && self.birth_rate_min > 0.0
                 && self.birth_rate_max.is_finite()
@@ -121,7 +133,7 @@ impl Start {
         ensure!(
             self.organisms
                 .iter()
-                .all(|item| (1..=10).contains(&item.scale)
+                .all(|item| (1.0..=10.0).contains(&item.scale)
                     && item.x < self.size
                     && item.y < self.size),
             "Organism scales must be 1–10 and positions must be inside the world"
@@ -195,7 +207,7 @@ pub fn preset() -> Start {
             let angle = rand::random::<f64>() * std::f64::consts::TAU;
             let radius = 400.0 * rand::random::<f64>().sqrt();
             Organism {
-                scale: 1,
+                scale: 1.0,
                 x: (512.0 + radius * angle.cos()).round() as u32,
                 y: (512.0 + radius * angle.sin()).round() as u32,
             }
