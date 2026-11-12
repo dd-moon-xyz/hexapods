@@ -165,12 +165,12 @@ async fn outward_gates_births_and_inward_resumes_them() {
     let mut arena = Arena::start(&path, start).await.unwrap();
     arena.movement("o\n", true).await.unwrap();
     for _ in 0..8 {
-        assert_eq!(arena.frame().await.unwrap().1, 0);
+        assert_eq!(arena.frame().await.unwrap().await.unwrap().unwrap().1, 0);
     }
     arena.movement("i\n", false).await.unwrap();
-    arena.frame().await.unwrap();
+    arena.frame().await.unwrap().await.unwrap().unwrap();
     sleep(Duration::from_millis(20)).await;
-    assert_eq!(arena.frame().await.unwrap().1, 1);
+    assert_eq!(arena.frame().await.unwrap().await.unwrap().unwrap().1, 1);
     let commands = fs::read_to_string(directory.path().join("commands")).unwrap();
     assert!(
         commands
@@ -220,12 +220,16 @@ async fn api_streams_population_movement_and_stop_without_pacing() {
     for command in ["outward", "inward", "inward_fast", "outward_normal"] {
         socket.send(Message::Text(command.into())).await.unwrap();
     }
-    socket.send(Message::Text("next".into())).await.unwrap();
-    let status = socket.next().await.unwrap().unwrap();
-    let status: Value = serde_json::from_str(status.to_text().unwrap()).unwrap();
-    assert_eq!(status["alive"], 1);
-    let frame = socket.next().await.unwrap().unwrap().into_data();
-    assert_eq!(turbojpeg::read_header(&frame).unwrap().width, 256);
+    for _ in 0..2 {
+        socket.send(Message::Text("next".into())).await.unwrap();
+    }
+    for _ in 0..2 {
+        let status = socket.next().await.unwrap().unwrap();
+        let status: Value = serde_json::from_str(status.to_text().unwrap()).unwrap();
+        assert_eq!(status["alive"], 1);
+        let frame = socket.next().await.unwrap().unwrap().into_data();
+        assert_eq!(turbojpeg::read_header(&frame).unwrap().width, 256);
+    }
     socket.send(Message::Text("stop".into())).await.unwrap();
     assert!(
         socket

@@ -23,7 +23,7 @@ pub struct Arena {
     dead_frames: Vec<u8>,
     living: Vec<bool>,
     pending: Vec<Option<JoinHandle<Result<()>>>>,
-    encoder: Encoder,
+    encoder: Arc<std::sync::Mutex<Encoder>>,
 }
 
 impl Arena {
@@ -39,11 +39,11 @@ impl Arena {
             dead_frames: vec![0; count],
             living: vec![false; count],
             pending: (0..count).map(|_| None).collect(),
-            encoder: Encoder::new()?,
+            encoder: Arc::new(std::sync::Mutex::new(Encoder::new()?)),
         })
     }
 
-    pub async fn frame(&mut self) -> Result<(Vec<u8>, usize)> {
+    pub async fn frame(&mut self) -> Result<JoinHandle<Result<(Vec<u8>, usize)>>> {
         for index in 0..self.pending.len() {
             if self.pending[index]
                 .as_ref()
@@ -77,16 +77,23 @@ impl Arena {
             }
         }
         let size = worker.size;
-        let config = &self.config;
-        let jpeg = tokio::task::block_in_place(|| {
-            self.encoder.encode(
-                &mut worker.pixels,
-                size,
-                config.pixel_size as usize,
-                config.output_size,
-            )
-        })?;
-        Ok((jpeg, alive))
+        let mut pixels = std::mem::replace(&mut worker.pixels, vec![0; size * size * 3]);
+        drop(worker);
+        let config = Arc::clone(&self.config);
+        let encoder = Arc::clone(&self.encoder);
+        Ok(tokio::task::spawn_blocking(move || {
+            let jpeg = encoder
+                .lock()
+                .map_err(|_| anyhow::anyhow!("JPEG encoder lock poisoned"))?
+                .encode(
+                    &mut pixels,
+                    size,
+                    config.pixel_size as usize,
+                    config.output_size,
+                )?;
+
+            Ok((jpeg, alive))
+        }))
     }
 
     fn schedule_birth(&self, index: usize) -> JoinHandle<Result<()>> {

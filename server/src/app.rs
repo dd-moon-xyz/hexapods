@@ -13,7 +13,7 @@ use axum::{
     routing::{any, get},
 };
 use serde_json::json;
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{collections::VecDeque, path::PathBuf, sync::Arc, time::Duration};
 use tokio::{sync::watch, time::timeout};
 
 #[derive(Clone)]
@@ -114,7 +114,24 @@ async fn run_session(socket: &mut WebSocket, config: &Start, arena: &mut Arena) 
             .into(),
         ))
         .await?;
-    while let Some(command) = receive(socket, 60).await? {
+    let mut pending = VecDeque::<tokio::task::JoinHandle<Result<(Vec<u8>, usize)>>>::new();
+    loop {
+        let command = tokio::select! {
+            result = async { pending.front_mut().unwrap().await }, if !pending.is_empty() => {
+                let (jpeg, alive) = result??;
+                pending.pop_front();
+                if config.population_updates {
+                    socket.send(Message::Text(json!({"status": "population", "alive": alive, "total": config.organisms.len()}).to_string().into())).await?;
+                }
+                socket.send(Message::Binary(jpeg.into())).await?;
+                continue;
+            }
+            command = receive(socket, 60), if pending.len() < 2 => command?,
+        };
+        let Some(command) = command else {
+            break;
+        };
+
         match command.as_str() {
             "stop" => {
                 socket
@@ -125,11 +142,7 @@ async fn run_session(socket: &mut WebSocket, config: &Start, arena: &mut Arena) 
                 break;
             }
             "next" => {
-                let (jpeg, alive) = arena.frame().await?;
-                if config.population_updates {
-                    socket.send(Message::Text(json!({"status": "population", "alive": alive, "total": config.organisms.len()}).to_string().into())).await?;
-                }
-                socket.send(Message::Binary(jpeg.into())).await?;
+                pending.push_back(arena.frame().await?);
             }
             "outward" => arena.movement("o\n", true).await?,
             "outward_normal" => arena.movement("u\n", true).await?,
