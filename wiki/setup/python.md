@@ -1,36 +1,37 @@
 ---
 type: Documentation
-title: Rust client environment
+title: Python client environment
 ---
 
-# Rust client environment
+# Python client environment
 
-From the repository root, install the Rust toolchain first:
-
-```bash
-make rust-setup
-```
-
-This requires an apt-based system providing `libsdl3-dev`, sudo access, `curl`, HTTPS access, and a C compiler/linker. It first runs `sudo apt update` and `sudo apt install -y cmake libsdl3-dev`. It downloads the [official rustup installer](https://rust-lang.org/tools/install/) when rustup is missing, installs or updates stable Rust with Cargo, rustfmt, and Clippy, and selects stable as your user's default toolchain. The Rust toolchain itself is installed as your user; sudo is used for the system packages. Rust tools live in `${CARGO_HOME:-$HOME/.cargo}/bin`; the Makefile includes that directory in PATH automatically. For direct `cargo` commands in the current terminal, run:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and create a client environment from the repository root:
 
 ```bash
-. "${CARGO_HOME:-$HOME/.cargo}/env"
-rustc --version
-cargo --version
+make local-client-setup
 ```
 
-There is no virtual environment to activate. Cargo reads `Cargo.toml`, downloads dependencies into its user cache, and uses `Cargo.lock` for reproducible dependency versions. Release builds go into each crate's `target/release/` directory. Run `make rust-setup` again to update the stable toolchain.
+For the Raspberry Pi, use `make raspi-client-setup`. Both commands run `uv sync --locked`, download managed Python 3.14 when needed, and install dependencies into each client's `.venv`. No manual activation is required: Make run targets use `uv run --locked`. The shared `client/core/` package is installed as an editable path dependency, so both clients use the same rendering, streaming, recording, and replay code.
 
-Install the system libraries described in [Linux setup](linux.md) and the [Pi client prerequisites](../../raspi_client/README.md), including system-wide CMake (`sudo apt install cmake` on Debian, Ubuntu, or Raspberry Pi OS). Verify it is available with `cmake --version`; `make rust-setup` installs CMake and SDL3 development packages automatically. Then build the Pi client:
+For direct commands:
+
+```bash
+cd client/local
+uv run --locked local-client --help
+```
+
+The clients use Pygame's SDL2 renderer; SDL3, CMake, and Rust are not client requirements when compatible binary wheels are available. Source builds may require SDL2 development packages. See [Linux setup](linux.md) for the Rust/CUDA server prerequisites. The server still uses `make rust-setup` and `make server-setup`; `make rust-setup` installs system CMake through apt and manages stable Rust, Cargo, rustfmt, and Clippy through rustup. Rust tools live in `${CARGO_HOME:-$HOME/.cargo}/bin`; Make adds that directory to PATH. For direct Cargo commands, load `. "${CARGO_HOME:-$HOME/.cargo}/env"` in the shell. Cargo reads `server/Cargo.toml` and the locked dependencies, caches downloads, and writes the release binary under `server/target/release/`. Run `make rust-setup` again to update the toolchain.
+
+Install the [Pi hardware prerequisites](../../client/raspi/README.md), then set up the Pi environment:
 
 ```bash
 make raspi-client-setup
 ```
 
-This builds the locked Rust release binary in `raspi_client/target/release/raspi-client`. The Pi imports the shared `client_core` Rust library for rendering, WebSocket streaming, capture, and replay. Python and uv are no longer required.
+The Pi camera helper runs `/usr/bin/python3`, separately from the managed client interpreter, to use the system's Picamera2 and libcamera bindings. On Raspberry Pi OS, install `sudo apt install python3-picamera2 imx500-all`. The helper loads the existing IMX500 SSD model and sends height metadata to the client. I²C motion and hardware PWM controls remain Python code.
 
-Install Rust 1.85+, SDL3 development headers, a C compiler, CMake, and `pkg-config`. Install SDL3 with `sudo apt install libsdl3-dev` on releases providing that package, and verify it with `pkg-config --modversion sdl3`. See [Linux setup](linux.md) for the source-build alternative when the package is unavailable. Install `imx500-all` for native camera inference and the existing firmware/model. Use a 64-bit Raspberry Pi OS desktop. The Pi client does not require CUDA.
+Use a 64-bit Raspberry Pi OS graphical desktop. The Pi does not require CUDA or Rust. Configure `.env` as described in [client configuration](../operation/configuration.md); run `make raspi-client-run` for live mode.
 
-Desktop testing uses the [same Rust + SDL3 viewer](../../local_client/README.md). Use `make local-client-test` for shared protocol/capture tests and `make raspi-client-test` for Pi sensor logic. Real camera, I²C, and PWM operation must also be verified on the Pi.
+Desktop testing uses the [same Python viewer](../../client/local/README.md). Use `make local-client-test` for shared tests and `make raspi-client-test` for Pi sensor logic. Real camera, I²C, and PWM operation must also be verified on the Pi.
 
 [Section index](index.md) · [Wiki index](../documentation/overview.md)

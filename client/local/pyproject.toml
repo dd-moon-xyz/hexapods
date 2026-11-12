@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hexapods-local-client"
+version = "0.1.0"
+requires-python = ">=3.14,<3.15"
+dependencies = ["hexapods-client-core"]
+
+[project.scripts]
+local-client = "local_client.client:main"
+
+[tool.uv]
+python-preference = "only-managed"
+
+[tool.uv.sources]
+hexapods-client-core = { path = "../core", editable = true }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["local_client*"]

@@ -15,11 +15,11 @@ make server-run
 
 Setup builds the existing CUDA executable and the locked Rust release binary. The default address is `0.0.0.0:9877`. The API is intended for a trusted local network and has no authentication.
 
-Connect the Rust desktop client:
+Connect the Python desktop client:
 
 ```bash
-cd local_client
-./target/release/local-client --url ws://127.0.0.1:9877/ws
+cd client/local
+uv run --locked local-client --url ws://127.0.0.1:9877/ws
 ```
 
 From `server/`, change the listening address or select another native executable:

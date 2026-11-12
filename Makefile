@@ -6,7 +6,7 @@ CARGO ?= cargo
 .PHONY: rust-setup
 rust-setup:
 	sudo apt update
-	sudo apt install -y cmake libsdl3-dev
+	sudo apt install -y cmake
 	@set -eu; \
 	if ! command -v rustup >/dev/null 2>&1; then \
 		installer=$$(mktemp); \
@@ -39,20 +39,19 @@ server-stop:
 	pm2 save
 
 local-client-setup:
-	cd local_client && $(CARGO) build --release --locked
+	cd client/local && uv sync --locked
 
 local-client-run:
-	cd local_client && ./target/release/local-client
+	cd client/local && uv run --locked local-client
 
 local-client-record:
-	cd local_client && ./target/release/local-client --record animation.mp4
+	cd client/local && uv run --locked local-client --record animation.mp4
 
 local-client-test:
-	cd local_client && $(CARGO) test --release --locked
-	$(CARGO) test --manifest-path client_core/Cargo.toml --release --locked
+	cd client/local && uv run --locked python -m unittest discover -s ../core/tests
 
 local-client-up:
-	cd local_client && pm2 start ecosystem.config.js --only local-client
+	cd client/local && pm2 start ecosystem.config.js --only local-client
 	pm2 save
 
 local-client-stop:
@@ -60,22 +59,22 @@ local-client-stop:
 	pm2 save
 
 raspi-client-test:
-	cd raspi_client && $(CARGO) test --release --locked
+	cd client/raspi && uv run --locked python -m unittest discover -s tests
 
 raspi-client-setup:
-	cd raspi_client && $(CARGO) build --release --locked
+	cd client/raspi && uv sync --locked
 
 raspi-client-run:
-	cd raspi_client && ./target/release/raspi-client
+	cd client/raspi && uv run --locked lenia-client
 
 replay:
-	cd raspi_client && ./target/release/raspi-client replay
+	cd client/raspi && uv run --locked lenia-replay
 
 collect:
-	cd raspi_client && ./target/release/raspi-client collect
+	cd client/raspi && uv run --locked lenia-collect
 
 raspi-client-up:
-	cd raspi_client && pm2 start ecosystem.config.js --only lenia-client
+	cd client/raspi && pm2 start ecosystem.config.js --only lenia-client
 	pm2 save
 
 raspi-client-stop:
@@ -83,14 +82,14 @@ raspi-client-stop:
 	pm2 save
 
 raspi-client-restart:
-	cd raspi_client && pm2 restart ecosystem.config.js --only lenia-client --update-env
+	cd client/raspi && pm2 restart ecosystem.config.js --only lenia-client --update-env
 	pm2 save
 
 raspi-client-logs:
 	pm2 logs lenia-client
 
 replay-start:
-	cd raspi_client && pm2 start ecosystem.config.js --only lenia-replay
+	cd client/raspi && pm2 start ecosystem.config.js --only lenia-replay
 	pm2 save
 
 replay-stop:
@@ -98,7 +97,7 @@ replay-stop:
 	pm2 save
 
 replay-restart:
-	cd raspi_client && pm2 restart ecosystem.config.js --only lenia-replay --update-env
+	cd client/raspi && pm2 restart ecosystem.config.js --only lenia-replay --update-env
 	pm2 save
 
 replay-logs:
@@ -106,4 +105,4 @@ replay-logs:
 
 raspi-client-run replay collect raspi-client-up raspi-client-restart replay-start replay-restart: export XDG_RUNTIME_DIR ?= /run/user/$(shell id -u)
 raspi-client-run replay collect raspi-client-up raspi-client-restart replay-start replay-restart: export WAYLAND_DISPLAY ?= wayland-0
-raspi-client-run replay collect raspi-client-up raspi-client-restart replay-start replay-restart: export SDL_VIDEO_DRIVER := wayland
+raspi-client-run replay collect raspi-client-up raspi-client-restart replay-start replay-restart: export SDL_VIDEODRIVER := wayland

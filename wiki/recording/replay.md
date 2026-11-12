@@ -11,6 +11,6 @@ Stop the live client with `make raspi-client-stop` before replay so both process
 
 See [frame collection](collection.md) to capture a fresh recording or customize collection settings.
 
-Use `./target/release/raspi-client replay --windowed` for a window, or `--directory recordings/new` to select another recording directory (capturing if no recording exists). Replay also accepts `--url`, `--config`, and `--seconds` (default 30).
+Use `uv run --locked lenia-replay --windowed` for a window, or `--directory recordings/new` to select another recording directory (capturing if no recording exists). Replay also accepts `--url`, `--config`, and `--seconds` (default 30).
 
 [Section index](index.md) · [Wiki index](../documentation/overview.md)

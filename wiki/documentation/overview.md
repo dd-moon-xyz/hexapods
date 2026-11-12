@@ -21,7 +21,7 @@ Shared documentation for the CUDA hexapod simulation server and its local and Ra
 - [Recording](../recording/index.md)
 - [Wiring](../wiring/index.md)
 - [Documentation](index.md)
-- [Raspberry Pi client overview](../../raspi_client/README.md)
-- [Rust + SDL client](../../local_client/README.md) and [shared client core](../../client_core/README.md)
+- [Raspberry Pi client overview](../../client/raspi/README.md)
+- [Python local client](../../client/local/README.md) and [shared client core](../../client/core/README.md)
 
 [Project README](../../README.md)
