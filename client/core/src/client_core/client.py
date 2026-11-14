@@ -4,7 +4,6 @@ import io
 import json
 import os
 import sys
-from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
@@ -28,94 +27,14 @@ def load_preset(url: str, token: str | None = None) -> dict:
         return json.load(response)
 
 
-class VideoRecorder:
-    def __init__(self, writer: asyncio.StreamWriter, fps: int):
-        self.writer = writer
-        self.fps = fps
-        self.started = None
-        self.frame = None
-        self.frames = 0
-
-    async def advance(self, timestamp: float) -> None:
-        if self.frame is None:
-            return
-
-        target = max(1, round((timestamp - self.started) * self.fps))
-        for _ in range(max(0, target - self.frames)):
-            self.writer.write(self.frame)
-            await self.writer.drain()
-            self.frames += 1
-
-    async def write(self, frame: bytes, timestamp: float) -> None:
-        if self.started is None:
-            self.started = timestamp
-
-        await self.advance(timestamp)
-        self.frame = frame
-
-
-@asynccontextmanager
-async def record_video(path: Path, fps: int):
-    process = await asyncio.create_subprocess_exec(
-        "ffmpeg",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-y",
-        "-f",
-        "image2pipe",
-        "-framerate",
-        str(fps),
-        "-c:v",
-        "mjpeg",
-        "-i",
-        "pipe:0",
-        "-vf",
-        "scale=1080:1920:force_original_aspect_ratio=decrease:flags=lanczos,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,setsar=1",
-        "-an",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "veryfast",
-        "-crf",
-        "18",
-        "-pix_fmt",
-        "yuv420p",
-        "-movflags",
-        "+faststart",
-        str(path.resolve()),
-        stdin=asyncio.subprocess.PIPE,
-    )
-
-    video = VideoRecorder(process.stdin, fps)
-    try:
-        yield video
-    finally:
-        try:
-            await video.advance(asyncio.get_running_loop().time())
-        finally:
-            process.stdin.close()
-            try:
-                code = await process.wait()
-            finally:
-                if process.returncode is None:
-                    process.kill()
-                    await process.wait()
-
-        if code != 0:
-            raise ValueError(f"Video recording failed (FFmpeg exit {code})")
-
-
 async def display_stream(
-    url: str, config: dict, commands: asyncio.Queue, viewer: Viewer, record: Path | None = None, population: dict | None = None, token: str | None = None,
+    url: str, config: dict, commands: asyncio.Queue, viewer: Viewer, population: dict | None = None, token: str | None = None,
     connected: asyncio.Event | None = None,
 ) -> None:
     async with (
         connect(url, additional_headers=headers(token), max_size=4 * 1024 * 1024, compression=None) as websocket,
-        AsyncExitStack() as recording,
         asyncio.timeout(FRAME_TIMEOUT) as activity,
     ):
-        video = None
         if population is not None:
             config = {**config, "population_updates": True}
 
@@ -128,11 +47,6 @@ async def display_stream(
 
                 if status.get("status") == "started":
                     viewer.resize((status["size"], status["size"]))
-                    if record is not None:
-                        video = await recording.enter_async_context(
-                            record_video(record, status.get("fps", config.get("fps", 60)))
-                        )
-
                     await websocket.send("next")
                     await websocket.send("next")
 
@@ -155,13 +69,10 @@ async def display_stream(
             if connected is not None:
                 connected.set()
 
-            if video is not None:
-                await video.write(message, asyncio.get_running_loop().time())
-
 
 async def reconnect(
     url: str, config: dict | None, commands: asyncio.Queue, viewer: Viewer,
-    connected: asyncio.Event, record: Path | None = None, population: dict | None = None,
+    connected: asyncio.Event, population: dict | None = None,
     token: str | None = None, fit_display: bool = False,
 ) -> None:
     while True:
@@ -170,7 +81,7 @@ async def reconnect(
             if fit_display:
                 preset = {**preset, "output_size": min(1024, *viewer.output_size)}
 
-            await display_stream(url, preset, commands, viewer, record, population, token, connected)
+            await display_stream(url, preset, commands, viewer, population, token, connected)
             print("Server stream ended; playing offline animation. Retrying in 3 seconds.", file=sys.stderr, flush=True)
         except (OSError, ValueError, KeyError, TypeError, WebSocketException, pygame.error) as error:
             print(f"Server unavailable: {error}. Playing offline animation; retrying in 3 seconds.", file=sys.stderr, flush=True)
@@ -181,7 +92,7 @@ async def reconnect(
 
 
 async def run(
-    url: str, config: dict | None, record: Path | None = None,
+    url: str, config: dict | None,
     sensor_monitor=None, windowed: bool = True, fit_display: bool = False, token: str | None = None,
 ) -> None:
     pygame.display.init()
@@ -203,7 +114,7 @@ async def run(
 
     connected = asyncio.Event()
     stream = asyncio.create_task(reconnect(
-        url, config, commands, viewer, connected, record,
+        url, config, commands, viewer, connected,
         population if sensors is not None else None, token, fit_display,
     ))
 
@@ -275,16 +186,11 @@ def main() -> None:
         type=Path,
         help="JSON file containing the server start configuration",
     )
-    parser.add_argument(
-        "--record",
-        type=Path,
-        help="Record received frames to an MP4 video (requires FFmpeg)",
-    )
     args = parser.parse_args()
     try:
         config = None if args.config is None else json.loads(args.config.read_text())
 
-        asyncio.run(run(args.url, config, args.record))
+        asyncio.run(run(args.url, config))
     except (OSError, ValueError, WebSocketException, pygame.error) as error:
         parser.exit(1, f"Error: {error}\n")
     except KeyboardInterrupt:

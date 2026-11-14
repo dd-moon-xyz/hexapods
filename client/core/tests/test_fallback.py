@@ -13,16 +13,16 @@ from client_core.fallback import display_fallback, load_animation
 class FallbackTests(unittest.IsolatedAsyncioTestCase):
     async def test_bundled_animation_is_complete_and_decodable(self):
         fps, frames = load_animation()
-        self.assertEqual(fps, 60)
+        self.assertEqual(fps, 120)
         self.assertGreater(len(frames), 1)
         for frame in frames:
-            self.assertEqual(pygame.image.load(io.BytesIO(frame), "frame.jpg").get_size(), (800, 800))
+            self.assertEqual(pygame.image.load(io.BytesIO(frame), "frame.jpg").get_size(), (1024, 1024))
 
     async def test_fallback_draws_offline_and_yields_to_live_frames(self):
         connected = asyncio.Event()
         viewer = MagicMock()
         drawn = asyncio.Event()
-        viewer.draw.side_effect = lambda frame: drawn.set()
+        viewer.draw.side_effect = lambda frame, **options: drawn.set()
         task = asyncio.create_task(display_fallback(viewer, connected))
         try:
             await asyncio.wait_for(drawn.wait(), 2)
@@ -48,7 +48,7 @@ class FallbackTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(seconds, 3)
             await pause(0)
 
-        async def stream(url, config, commands, viewer, record, population, token, live):
+        async def stream(url, config, commands, viewer, population, token, live):
             nonlocal attempts
             self.assertFalse(live.is_set())
             self.assertEqual(config, {"action": "start"})

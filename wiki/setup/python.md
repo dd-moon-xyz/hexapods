@@ -11,7 +11,7 @@ Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and create
 make local-client-setup
 ```
 
-For the Raspberry Pi, use `make raspi-client-setup`. Both commands run `uv sync --locked`, download managed Python 3.14 when needed, and install dependencies into each client's `.venv`. No manual activation is required: Make run targets use `uv run --locked`. The shared `client/core/` package is installed as an editable path dependency, so both clients use the same rendering, streaming, recording, and replay code.
+For the Raspberry Pi, use `make raspi-client-setup`. Both commands download the pinned fallback Release asset and verify its checksum, then run `uv sync --locked`, download managed Python 3.14 when needed, and install dependencies into each client's `.venv`. No manual activation is required: Make run targets use `uv run --locked`. The shared `client/core/` package is installed as an editable path dependency, so both clients use the same rendering, streaming, and fallback code.
 
 For direct commands:
 

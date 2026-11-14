@@ -7,7 +7,6 @@ import pygame
 from websockets.exceptions import WebSocketException
 
 from client_core.client import run
-from client_core.preview import main as preview_main
 from hexapods_client.sensors import monitor_sensors
 from hexapods_client.settings import Settings
 
@@ -38,11 +37,6 @@ def main() -> None:
         raise SystemExit(1) from error
     except KeyboardInterrupt:
         pass
-
-
-def preview() -> None:
-    settings = Settings()
-    preview_main(settings.url, settings.hexapods_token)
 
 
 if __name__ == "__main__":

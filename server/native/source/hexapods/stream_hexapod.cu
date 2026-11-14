@@ -10,7 +10,6 @@
 #include <vector>
 
 namespace {
-    constexpr int RES = 128;
     constexpr float PI = 3.14159265359f, LENGTH = 97.625f, REACH = LENGTH * 3.f - 3.f;
     struct Foot { float2 position, start, target; float progress, duration, threshold, ready, reachBias, lateralBias; unsigned int random; };
     struct Walker {
@@ -176,6 +175,7 @@ namespace {
         return distance;
     }
     __device__ float tissue(float distance, float softness) { return 1.f / (1.f + expf(distance / softness)); }
+    template<int RES>
     __global__ void body(const Walker* walkers, float* density, int count) {
         int x = blockIdx.x * blockDim.x + threadIdx.x, y = blockIdx.y * blockDim.y + threadIdx.y, index = blockIdx.z;
         if (x >= RES || y >= RES || index >= count) return;
@@ -205,6 +205,7 @@ namespace {
         state = fmaxf(state, torso * (.51f + (.137f + .098f * sinf(w.time * 2.2f - local.y * .065f))));
         density[index * RES * RES + y * RES + x] = clip(state, 0.f, 1.f);
     }
+    template<int RES>
     __device__ float sample(const float* field, float x, float y) {
         int ix = static_cast<int>(floorf(x)), iy = static_cast<int>(floorf(y));
         if (ix < 0 || iy < 0 || ix >= RES - 1 || iy >= RES - 1) return 0.f;
@@ -224,24 +225,26 @@ namespace {
         return (hash(base) * (1.f - x) + hash(add(base, make_float2(1.f, 0.f))) * x) * (1.f - y)
              + (hash(add(base, make_float2(0.f, 1.f))) * (1.f - x) + hash(add(base, make_float2(1.f, 1.f))) * x) * y;
     }
+    template<int RES>
     __global__ void fluid(const Walker* walkers, const float* density, const float* before, float* after, int count, float dt, float displacement) {
         int x = blockIdx.x * blockDim.x + threadIdx.x, y = blockIdx.y * blockDim.y + threadIdx.y, index = blockIdx.z;
         if (x >= RES || y >= RES || index >= count) return;
         const Walker& w = walkers[index];
         const float* src = before + index * RES * RES;
         const float* state = density + index * RES * RES;
-        float sx = (sample(state, x + 1.f, y) - sample(state, x - 1.f, y)) * .5f;
-        float sy = (sample(state, x, y + 1.f) - sample(state, x, y - 1.f)) * .5f;
-        float gx = (sample(src, x + 1.f, y) - sample(src, x - 1.f, y)) * .5f;
-        float gy = (sample(src, x, y + 1.f) - sample(src, x, y - 1.f)) * .5f;
-        float2 p = make_float2(x * .075f + w.time * .3f, y * .075f - w.time * .22f);
+        constexpr float cell = RES / 128.f;
+        float sx = (sample<RES>(state, x + cell, y) - sample<RES>(state, x - cell, y)) * .5f;
+        float sy = (sample<RES>(state, x, y + cell) - sample<RES>(state, x, y - cell)) * .5f;
+        float gx = (sample<RES>(src, x + cell, y) - sample<RES>(src, x - cell, y)) * .5f;
+        float gy = (sample<RES>(src, x, y + cell) - sample<RES>(src, x, y - cell)) * .5f;
+        float2 p = make_float2(x / cell * .075f + w.time * .3f, y / cell * .075f - w.time * .22f);
         float cx = noise(add(p, make_float2(0.f, .5f))) - noise(add(p, make_float2(0.f, -.5f)));
         float cy = noise(add(p, make_float2(-.5f, 0.f))) - noise(add(p, make_float2(.5f, 0.f)));
         float2 velocity = make_float2(-sy * 14.f - gy * 20.f + cx * 9.f, sx * 14.f + gx * 20.f + cy * 9.f);
         float2 shift = mul(sub(w.position, w.previous), RES / 700.f * displacement);
-        float px = x + shift.x - velocity.x * dt * 3.f, py = y + shift.y - velocity.y * dt * 3.f;
-        float advected = sample(src, px, py);
-        float average = .25f * (sample(src, px - 1, py) + sample(src, px + 1, py) + sample(src, px, py - 1) + sample(src, px, py + 1));
+        float px = x + shift.x - velocity.x * cell * dt * 3.f, py = y + shift.y - velocity.y * cell * dt * 3.f;
+        float advected = sample<RES>(src, px, py);
+        float average = .25f * (sample<RES>(src, px - cell, py) + sample<RES>(src, px + cell, py) + sample<RES>(src, px, py - cell) + sample<RES>(src, px, py + cell));
         float injected = fmaxf(0.f, state[y * RES + x] - .235f) * dt * 1.8f * w.health;
         after[index * RES * RES + y * RES + x] = clip((advected * .95f + average * .05f) * expf(-dt * .65f) + injected, 0.f, .43f);
     }
@@ -270,6 +273,7 @@ namespace {
         float3 a = stops[palette][i], b = stops[palette][i + 1];
         return make_float3(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f, a.z + (b.z - a.z) * f);
     }
+    template<int RES>
     __global__ void compose(const Walker* walkers, const float* density, const float* wake, unsigned char* output, int count, int size) {
         int x = blockIdx.x * blockDim.x + threadIdx.x, y = blockIdx.y * blockDim.y + threadIdx.y;
         if (x >= size || y >= size) return;
@@ -283,7 +287,7 @@ namespace {
                 if (fabsf(local.x) > extent || fabsf(local.y) > extent) continue;
                 float px = local.x / (700.f * w.zoom) * RES + RES * .5f - .5f;
                 float py = local.y / (700.f * w.zoom) * RES + RES * .5f - .5f;
-                float value = fmaxf(sample(density + i * RES * RES, px, py), sample(wake + i * RES * RES, px, py));
+                float value = fmaxf(sample<RES>(density + i * RES * RES, px, py), sample<RES>(wake + i * RES * RES, px, py));
                 if (value < .015f) continue;
                 float3 c = color(value, w.palette);
                 rgb.x += c.x * w.health; rgb.y += c.y * w.health; rgb.z += c.z * w.health;
@@ -306,6 +310,7 @@ namespace {
         for (int channel = 0; channel < 3; ++channel)
             output[(y * outputSize + x) * 3 + channel] = Hexapods::boxVertical(rows, size, outputSize, x, y, channel);
     }
+    template<int RES>
     __global__ void contact(Walker* walkers, const float* density, float2* totals, int count) {
         int index = blockIdx.x;
         if (index >= count) return;
@@ -328,7 +333,7 @@ namespace {
                 const Walker& other = walkers[peer];
                 float2 delta = sub(mul(world, 1.f / other.zoom), other.position);
                 if (fabsf(delta.x) >= 350.f || fabsf(delta.y) >= 350.f) continue;
-                float value = sample(density + peer * RES * RES, delta.x * RES / 700.f + RES * .5f - .5f,
+                float value = sample<RES>(density + peer * RES * RES, delta.x * RES / 700.f + RES * .5f - .5f,
                                    delta.y * RES / 700.f + RES * .5f - .5f) * other.health;
                 incoming += value;
                 if (value > .02f) atomicOr(touching + peer / 32, 1u << (peer % 32));
@@ -394,6 +399,7 @@ namespace {
         }
         return w;
     }
+    template<int RES>
     class Arena {
     public:
         Walker* walkers = nullptr;
@@ -424,7 +430,8 @@ namespace {
     };
 }
 
-int Hexapods::streamHexapod(bool preview) {
+template<int RES>
+int streamHexapod(bool preview) {
     int size, fps, count;
     float dt, boost;
     if (!(std::cin >> size >> fps >> dt >> boost >> count) || size < 256 || size > 1024 || fps < 1 || fps > 60 || count < 1 || count > 100 || !std::isfinite(dt) || dt <= 0 || dt > .2f || !std::isfinite(boost) || boost < 1) return 1;
@@ -446,7 +453,7 @@ int Hexapods::streamHexapod(bool preview) {
         if (!preview) w.health = 0.f;
     }
     try {
-        Arena arena(count,size);
+        Arena<RES> arena(count,size);
         checked(cudaMemcpy(arena.walkers,walkers.data(),count*sizeof(Walker),cudaMemcpyHostToDevice));
         std::vector<unsigned char> pixels(size*size*3);
         int outputSize = size;
@@ -520,15 +527,15 @@ int Hexapods::streamHexapod(bool preview) {
             float step = dt * movementSpeedMultiplier;
             advance<<<(count+63)/64,64>>>(arena.walkers,count,size,step,preview,outward);
             dim3 block(16,16), grid((RES+15)/16,(RES+15)/16,count);
-            body<<<grid,block>>>(arena.walkers,arena.density,count);
-            contact<<<count,256>>>(arena.walkers,arena.density,arena.contacts,count);
+            body<RES><<<grid,block>>>(arena.walkers,arena.density,count);
+            contact<RES><<<count,256>>>(arena.walkers,arena.density,arena.contacts,count);
             damage<<<(count+63)/64,64>>>(arena.walkers,arena.contacts,arena.masses,count,1.f/fps);
             int substeps = std::max(1,static_cast<int>(std::ceil(step*30.f)));
             for (int i=0;i<substeps;++i) {
-                fluid<<<grid,block>>>(arena.walkers,arena.density,arena.wake,arena.next,count,step/substeps,1.f/substeps);
+                fluid<RES><<<grid,block>>>(arena.walkers,arena.density,arena.wake,arena.next,count,step/substeps,1.f/substeps);
                 std::swap(arena.wake,arena.next);
             }
-            compose<<<dim3((size+15)/16,(size+15)/16),block>>>(arena.walkers,arena.density,arena.wake,arena.output,count,size);
+            compose<RES><<<dim3((size+15)/16,(size+15)/16),block>>>(arena.walkers,arena.density,arena.wake,arena.output,count,size);
             if (outputSize < size) {
                 resizeHorizontal<<<dim3((outputSize+15)/16,(size+15)/16),block>>>(arena.output,arena.resizeRows,size,outputSize);
                 resizeVertical<<<dim3((outputSize+15)/16,(outputSize+15)/16),block>>>(arena.resizeRows,arena.resized,size,outputSize);
@@ -542,4 +549,8 @@ int Hexapods::streamHexapod(bool preview) {
         }
     } catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
     return 0;
+}
+
+int Hexapods::streamHexapod(bool preview) {
+    return preview ? ::streamHexapod<1024>(true) : ::streamHexapod<128>(false);
 }

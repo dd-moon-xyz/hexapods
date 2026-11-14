@@ -31,22 +31,22 @@ class ConfigurationTests(unittest.TestCase):
             main()
 
         fetch.assert_not_called()
-        run.assert_awaited_once_with('ws://127.0.0.1:9877/ws', None, None)
+        run.assert_awaited_once_with('ws://127.0.0.1:9877/ws', None)
 
-    def test_explicit_configuration_bypasses_preset_and_keeps_recording_option(self):
+    def test_explicit_configuration_bypasses_preset(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'config.json'
             config = {'action': 'start', 'organisms': [{'scale': 2}]}
             path.write_text(json.dumps(config))
             with (
-                patch('sys.argv', ['local-client', '--url', 'ws://remote:9876/ws', '--config', str(path), '--record', 'capture.mp4']),
+                patch('sys.argv', ['local-client', '--url', 'ws://remote:9876/ws', '--config', str(path)]),
                 patch('client_core.client.load_preset') as fetch,
                 patch('client_core.client.run', new_callable=AsyncMock) as run,
             ):
                 main()
 
         fetch.assert_not_called()
-        run.assert_awaited_once_with('ws://remote:9876/ws', config, Path('capture.mp4'))
+        run.assert_awaited_once_with('ws://remote:9876/ws', config)
 
     def test_environment_configures_server_url_and_cli_overrides_it(self):
         for arguments, expected in (
@@ -63,4 +63,4 @@ class ConfigurationTests(unittest.TestCase):
                 main()
 
             fetch.assert_not_called()
-            run.assert_awaited_once_with(expected, None, None)
+            run.assert_awaited_once_with(expected, None)

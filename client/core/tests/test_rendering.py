@@ -8,6 +8,21 @@ from client_core.rendering import Viewer
 
 
 class RenderingTests(unittest.TestCase):
+    def test_fallback_preserves_live_window_size(self):
+        with patch.dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_RENDER_DRIVER="software"):
+            pygame.display.init()
+            viewer = Viewer()
+            try:
+                self.assertEqual(viewer.output_size, (1024, 1024))
+                viewer.draw(pygame.Surface((256, 256)))
+                viewer.draw(pygame.Surface((1024, 1024)), resize_window=False)
+                self.assertEqual(viewer.output_size, (256, 256))
+                viewer.draw(pygame.Surface((512, 512)))
+                self.assertEqual(viewer.output_size, (512, 512))
+            finally:
+                viewer.close()
+                pygame.display.quit()
+
     def test_native_pixels_and_nearest_sampling_preserve_checkerboard(self):
         with patch.dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_RENDER_DRIVER="software"):
             pygame.display.init()

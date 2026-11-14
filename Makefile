@@ -1,5 +1,14 @@
-.PHONY: raspi-client-test server-setup server-run server-test server-up server-stop local-client-setup local-client-run local-client-record local-client-test local-client-up local-client-stop raspi-client-setup raspi-client-run replay collect raspi-client-up raspi-client-stop raspi-client-restart raspi-client-logs replay-start replay-stop replay-restart replay-logs
-.PHONY: single-hexapod
+.PHONY: raspi-client-test server-setup server-run server-test server-up server-stop local-client-setup local-client-run local-client-test local-client-up local-client-stop raspi-client-setup raspi-client-run raspi-client-up raspi-client-stop raspi-client-restart raspi-client-logs
+.PHONY: fallback-record fallback-download fallback-publish
+
+fallback-download:
+	python3 scripts/fallback_asset.py download
+
+fallback-publish:
+	uv run --locked --directory client/local python ../../scripts/fallback_asset.py publish
+
+fallback-record:
+	python3 scripts/connection.py run local uv run --locked python ../../scripts/bundle_fallback.py
 
 export PATH := $(or $(CARGO_HOME),$(HOME)/.cargo)/bin:$(HOME)/.local/bin:$(PATH)
 CARGO ?= cargo
@@ -50,16 +59,13 @@ server-stop:
 	pm2 stop server
 	pm2 save
 
-local-client-setup:
+local-client-setup: fallback-download
 	cd client/local && uv sync --locked
 
 local-client-run:
 	python3 scripts/connection.py run local uv run --locked local-client
 
-local-client-record:
-	python3 scripts/connection.py run local uv run --locked local-client --record animation.mp4
-
-local-client-test:
+local-client-test: fallback-download
 	cd client/local && uv run --locked pytest -n auto ../core/tests
 
 local-client-up:
@@ -73,20 +79,11 @@ local-client-stop:
 raspi-client-test:
 	cd client/raspi && uv run --locked pytest -n auto tests
 
-raspi-client-setup:
+raspi-client-setup: fallback-download
 	cd client/raspi && uv sync --locked
 
 raspi-client-run:
 	python3 scripts/connection.py run raspi uv run --locked hexapods-client
-
-replay:
-	python3 scripts/connection.py run raspi uv run --locked hexapods-replay
-
-collect:
-	python3 scripts/connection.py run raspi uv run --locked hexapods-collect
-
-single-hexapod:
-	python3 scripts/connection.py run raspi uv run --locked hexapods-preview
 
 raspi-client-up:
 	python3 scripts/connection.py run raspi pm2 start ecosystem.config.js --only hexapods-client
@@ -104,21 +101,6 @@ raspi-client-restart:
 raspi-client-logs:
 	pm2 logs hexapods-client
 
-replay-start:
-	python3 scripts/connection.py run raspi pm2 start ecosystem.config.js --only hexapods-replay
-	pm2 save
-
-replay-stop:
-	pm2 stop hexapods-replay
-	pm2 save
-
-replay-restart:
-	python3 scripts/connection.py run raspi pm2 restart ecosystem.config.js --only hexapods-replay --update-env
-	pm2 save
-
-replay-logs:
-	pm2 logs hexapods-replay
-
-raspi-client-run replay collect single-hexapod raspi-client-up raspi-client-restart replay-start replay-restart: export XDG_RUNTIME_DIR ?= /run/user/$(shell id -u)
-raspi-client-run replay collect single-hexapod raspi-client-up raspi-client-restart replay-start replay-restart: export WAYLAND_DISPLAY ?= wayland-0
-raspi-client-run replay collect single-hexapod raspi-client-up raspi-client-restart replay-start replay-restart: export SDL_VIDEODRIVER := wayland
+raspi-client-run raspi-client-up raspi-client-restart: export XDG_RUNTIME_DIR ?= /run/user/$(shell id -u)
+raspi-client-run raspi-client-up raspi-client-restart: export WAYLAND_DISPLAY ?= wayland-0
+raspi-client-run raspi-client-up raspi-client-restart: export SDL_VIDEODRIVER := wayland

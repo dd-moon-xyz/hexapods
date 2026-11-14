@@ -5,7 +5,7 @@ title: Sensor controls
 
 # Sensor controls
 
-During live hexapod streaming, the AI Camera acts as a person proximity sensor and the accelerometer/gyroscope remains active. The physical LTR559 proximity sensor is disabled in the client: it is not opened, calibrated, or polled. The [indicator LED](../wiring/indicator-led.md) tracks the living hexapod population, from off at zero to 25% brightness at the configured count. Replay does not open these inputs.
+During live hexapod streaming, the AI Camera acts as a person proximity sensor and the accelerometer/gyroscope remains active. The physical LTR559 proximity sensor is disabled in the client: it is not opened, calibrated, or polled. The [indicator LED](../wiring/indicator-led.md) tracks the living hexapod population, from off at zero to 25% brightness at the configured count.
 
 The camera uses pretrained SSD MobileNetV2 FPN Lite on the IMX500. Only person detections with confidence at least 0.60 count. The tallest person box determines proximity, including when multiple people are present. Escape starts after three detections with box height at least 50% of the image; it clears after three detections below 40%. This estimates closeness, not metres. See [AI Camera setup and tuning](../sensors/imx500.md#person-proximity-control).
 

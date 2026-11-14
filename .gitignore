@@ -5,3 +5,4 @@ __pycache__/
 server/target/
 server/native/build/
 *.mp4
+client/core/src/client_core/assets/*.zip

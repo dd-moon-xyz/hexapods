@@ -18,4 +18,4 @@ uv run --locked local-client --url ws://SERVER:9877/ws --config preset.json
 
 Without `--config`, the viewer fetches the server preset. Hold Space/C for outward movement, V for boosted inward movement, and release to restore inward movement. Most recently held keys take priority. Focus loss restores inward movement; Escape exits.
 
-The high-DPI window preserves frame pixels with nearest-pixel texture sampling. Streaming keeps two frame requests in flight and has no FPS cap. `make local-client-record` records an MP4 (install FFmpeg); `make local-client-test` runs shared tests. Use `make local-client-up` and `make local-client-stop` for PM2; recreate an old Rust PM2 process after migration.
+The high-DPI window preserves frame pixels with nearest-pixel texture sampling. Streaming keeps two frame requests in flight and has no FPS cap. `make local-client-test` runs shared tests. Use `make local-client-up` and `make local-client-stop` for PM2; recreate an old Rust PM2 process after migration.

@@ -10,9 +10,6 @@ dependencies = ["hexapods-client-core", "pydantic-settings==2.16.2"]
 
 [project.scripts]
 hexapods-client = "hexapods_client.client:main"
-hexapods-replay = "client_core.replay:main"
-hexapods-collect = "client_core.collect:main"
-hexapods-preview = "hexapods_client.client:preview"
 
 [tool.uv]
 python-preference = "only-managed"

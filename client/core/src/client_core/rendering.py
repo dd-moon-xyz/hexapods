@@ -5,7 +5,7 @@ from pygame._sdl2 import Renderer, Texture
 class Viewer:
     def __init__(self, fullscreen: bool = False, fit_display: bool = False):
         self.window = pygame.Window(
-            "Hexapod stream — connecting…", size=(800, 800) if fit_display else (512, 512), allow_high_dpi=True
+            "Hexapod stream — connecting…", size=(800, 800) if fit_display else (1024, 1024), allow_high_dpi=True
         )
 
         if fullscreen:
@@ -32,10 +32,12 @@ class Viewer:
 
         self.window.title = "Hexapod stream — Hold Space/C outward, V inward, Esc to quit"
 
-    def draw(self, frame: pygame.Surface) -> None:
+    def draw(self, frame: pygame.Surface, resize_window: bool = True) -> None:
         size = frame.get_size()
         if self.frame_size != size:
-            self.resize(size)
+            if resize_window:
+                self.resize(size)
+
             self.texture = Texture(self.renderer, size, streaming=True, scale_quality=0)
             self.texture.blend_mode = pygame.BLENDMODE_NONE
             self.frame_size = size
