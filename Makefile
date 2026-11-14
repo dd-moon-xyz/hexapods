@@ -11,6 +11,7 @@ server-restart:
 	pm2 save
 
 local-client-restart:
+	pm2 stop local-client
 	python3 scripts/connection.py run local pm2 restart ecosystem.config.js --only local-client --update-env
 	pm2 save
 
@@ -96,6 +97,7 @@ raspi-client-stop:
 	pm2 save
 
 raspi-client-restart:
+	pm2 stop hexapods-client
 	python3 scripts/connection.py run raspi pm2 restart ecosystem.config.js --only hexapods-client --update-env
 	pm2 save
 
