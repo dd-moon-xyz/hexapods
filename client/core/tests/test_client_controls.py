@@ -12,7 +12,7 @@ class ControlTests(unittest.IsolatedAsyncioTestCase):
     async def test_direction_priority_release_and_focus_loss(self):
         sent = []
 
-        async def stream(url, config, commands, viewer, record, token=None):
+        async def stream(url, config, commands, viewer, record, population=None, token=None, connected=None):
             while True:
                 sent.append(await commands.get())
 

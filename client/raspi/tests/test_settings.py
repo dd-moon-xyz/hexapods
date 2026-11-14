@@ -54,7 +54,7 @@ class SettingsTests(unittest.TestCase):
             settings = Settings(_env_file=None, config=preset, person_proximity=.7)
             with patch('sys.argv', ['hexapods-client']), \
                     patch('hexapods_client.client.Settings', return_value=settings), \
-                    patch('hexapods_client.client.load_preset') as fetch, \
+                    patch('client_core.client.load_preset') as fetch, \
                     patch('hexapods_client.client.run', new_callable=AsyncMock) as run:
                 main()
                 fetch.assert_not_called()

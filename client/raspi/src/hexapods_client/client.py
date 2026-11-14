@@ -6,7 +6,7 @@ from functools import partial
 import pygame
 from websockets.exceptions import WebSocketException
 
-from client_core.client import load_preset, run
+from client_core.client import run
 from client_core.preview import main as preview_main
 from hexapods_client.sensors import monitor_sensors
 from hexapods_client.settings import Settings
@@ -18,7 +18,7 @@ def main() -> None:
             raise ValueError("Client options are configured in .env; see .env.example")
 
         settings = Settings()
-        config = load_preset(settings.url, settings.hexapods_token) if settings.config is None else json.loads(settings.config.read_text())
+        config = None if settings.config is None else json.loads(settings.config.read_text())
         monitor = partial(
             monitor_sensors, device=settings.motion_device,
             person_proximity=settings.person_proximity, motion_threshold=settings.motion_threshold,

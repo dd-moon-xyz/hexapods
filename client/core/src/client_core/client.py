@@ -3,6 +3,7 @@ import asyncio
 import io
 import json
 import os
+import sys
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
@@ -14,6 +15,9 @@ from websockets.exceptions import WebSocketException
 
 from client_core.rendering import Viewer
 from client_core.auth import headers
+from client_core.fallback import display_fallback
+
+FRAME_TIMEOUT = 15
 
 
 def load_preset(url: str, token: str | None = None) -> dict:
@@ -103,11 +107,13 @@ async def record_video(path: Path, fps: int):
 
 
 async def display_stream(
-    url: str, config: dict, commands: asyncio.Queue, viewer: Viewer, record: Path | None = None, population: dict | None = None, token: str | None = None
+    url: str, config: dict, commands: asyncio.Queue, viewer: Viewer, record: Path | None = None, population: dict | None = None, token: str | None = None,
+    connected: asyncio.Event | None = None,
 ) -> None:
     async with (
         connect(url, additional_headers=headers(token), max_size=4 * 1024 * 1024, compression=None) as websocket,
         AsyncExitStack() as recording,
+        asyncio.timeout(FRAME_TIMEOUT) as activity,
     ):
         video = None
         if population is not None:
@@ -145,18 +151,42 @@ async def display_stream(
             await websocket.send("next")
             frame = pygame.image.load(io.BytesIO(message), "frame.jpg")
             viewer.draw(frame)
+            activity.reschedule(asyncio.get_running_loop().time() + FRAME_TIMEOUT)
+            if connected is not None:
+                connected.set()
+
             if video is not None:
                 await video.write(message, asyncio.get_running_loop().time())
 
 
+async def reconnect(
+    url: str, config: dict | None, commands: asyncio.Queue, viewer: Viewer,
+    connected: asyncio.Event, record: Path | None = None, population: dict | None = None,
+    token: str | None = None, fit_display: bool = False,
+) -> None:
+    while True:
+        try:
+            preset = await asyncio.to_thread(load_preset, url, token) if config is None else config
+            if fit_display:
+                preset = {**preset, "output_size": min(1024, *viewer.output_size)}
+
+            await display_stream(url, preset, commands, viewer, record, population, token, connected)
+            print("Server stream ended; playing offline animation. Retrying in 3 seconds.", file=sys.stderr, flush=True)
+        except (OSError, ValueError, KeyError, TypeError, WebSocketException, pygame.error) as error:
+            print(f"Server unavailable: {error}. Playing offline animation; retrying in 3 seconds.", file=sys.stderr, flush=True)
+        finally:
+            connected.clear()
+
+        await asyncio.sleep(3)
+
+
 async def run(
-    url: str, config: dict, record: Path | None = None,
+    url: str, config: dict | None, record: Path | None = None,
     sensor_monitor=None, windowed: bool = True, fit_display: bool = False, token: str | None = None,
 ) -> None:
     pygame.display.init()
     viewer = Viewer(fullscreen=not windowed, fit_display=fit_display) if fit_display else Viewer()
     if fit_display:
-        config = {**config, "output_size": min(1024, *viewer.output_size)}
         pygame.mouse.set_visible(False)
 
     commands = asyncio.Queue()
@@ -171,12 +201,18 @@ async def run(
     if sensor_monitor is not None:
         sensors = asyncio.create_task(sensor_monitor(commands, population))
 
-    stream = asyncio.create_task(
-        display_stream(url, config, commands, viewer, record, population, token=token)
-        if sensors is not None else display_stream(url, config, commands, viewer, record, token=token)
-    )
+    connected = asyncio.Event()
+    stream = asyncio.create_task(reconnect(
+        url, config, commands, viewer, connected, record,
+        population if sensors is not None else None, token, fit_display,
+    ))
+
+    fallback = asyncio.create_task(display_fallback(viewer, connected))
     try:
         while not stream.done():
+            if fallback.done():
+                await fallback
+
             if sensors is not None and sensors.done():
                 await sensors
 
@@ -217,7 +253,7 @@ async def run(
 
         await stream
     finally:
-        tasks = (stream,) if sensors is None else (stream, sensors)
+        tasks = (stream, fallback) if sensors is None else (stream, fallback, sensors)
         for task in tasks:
             task.cancel()
 
@@ -246,7 +282,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     try:
-        config = load_preset(args.url) if args.config is None else json.loads(args.config.read_text())
+        config = None if args.config is None else json.loads(args.config.read_text())
 
         asyncio.run(run(args.url, config, args.record))
     except (OSError, ValueError, WebSocketException, pygame.error) as error:

@@ -10,3 +10,6 @@ dependencies = ["pygame-ce==2.5.8", "websockets==17.4", "tqdm==4.70.1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+client_core = ["assets/*.zip"]

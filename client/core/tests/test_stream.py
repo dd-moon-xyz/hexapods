@@ -9,6 +9,30 @@ from client_core.client import display_stream
 
 
 class StreamTests(unittest.IsolatedAsyncioTestCase):
+    async def test_missing_frames_time_out_before_and_after_live_playback(self):
+        for images in ((), (b"frame",)):
+            async def messages():
+                yield json.dumps({"status": "started", "size": 480, "fps": 60})
+                for image in images:
+                    yield image
+                await asyncio.Future()
+
+            websocket = MagicMock()
+            websocket.send = AsyncMock()
+            websocket.__aiter__.side_effect = messages
+            connected = asyncio.Event()
+            with (
+                self.subTest(images=images),
+                patch("client_core.client.connect") as connect,
+                patch("client_core.client.FRAME_TIMEOUT", .01),
+                patch("client_core.client.pygame.image.load"),
+            ):
+                connect.return_value.__aenter__.return_value = websocket
+                with self.assertRaises(TimeoutError):
+                    await display_stream("ws://unused/ws", {}, asyncio.Queue(), MagicMock(), connected=connected)
+
+            self.assertEqual(connected.is_set(), bool(images))
+
     async def test_two_requests_are_primed_and_replenished(self):
         received = []
         config = {"action": "start", "output_size": 480}

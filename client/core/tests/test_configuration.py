@@ -20,7 +20,7 @@ class ConfigurationTests(unittest.TestCase):
                 self.assertEqual(fetch.call_args.args[0].full_url, endpoint)
                 self.assertEqual(fetch.call_args.kwargs, {"timeout": 30})
 
-    def test_default_launch_fetches_local_server_preset(self):
+    def test_default_launch_defers_preset_loading_to_runtime(self):
         config = {'action': 'start', 'organisms': [{}]}
         with (
             patch.dict(os.environ, {}, clear=True),
@@ -30,8 +30,8 @@ class ConfigurationTests(unittest.TestCase):
         ):
             main()
 
-        fetch.assert_called_once_with('ws://127.0.0.1:9877/ws')
-        run.assert_awaited_once_with('ws://127.0.0.1:9877/ws', config, None)
+        fetch.assert_not_called()
+        run.assert_awaited_once_with('ws://127.0.0.1:9877/ws', None, None)
 
     def test_explicit_configuration_bypasses_preset_and_keeps_recording_option(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -62,5 +62,5 @@ class ConfigurationTests(unittest.TestCase):
             ):
                 main()
 
-            fetch.assert_called_once_with(expected)
-            run.assert_awaited_once_with(expected, {}, None)
+            fetch.assert_not_called()
+            run.assert_awaited_once_with(expected, None, None)
