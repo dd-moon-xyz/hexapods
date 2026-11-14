@@ -31,4 +31,4 @@ Hold Space or C for boosted outward escape, or V for boosted inward movement. Re
 
 Use `make server-test` and `make local-client-test` for tests. PM2 background mode uses `make server-up` and `make local-client-up`; stop them with the corresponding `-stop` commands. The client needs an active graphical desktop.
 
-The Raspberry Pi sensor client uses the shared `client_core` Python package, with Picamera2 camera, I²C motion, and LED controls. Run `make raspi-client-setup`, configure `LENIA_URL=ws://<server-LAN-IP>:9877/ws` in `client/raspi/.env`, then use `make raspi-client-run`. See [Pi setup](wiki/setup/index.md), [configuration](wiki/operation/configuration.md), and [sensor wiring](wiki/wiring/index.md).
+The Raspberry Pi sensor client uses the shared `client_core` Python package, with Picamera2 camera, I²C motion, and LED controls. Run `make raspi-client-setup`, configure `SERVER_ADDRESS=<server-LAN-IP>:9877` in `client/raspi/.env`, then use `make raspi-client-run`. See [Pi setup](wiki/setup/index.md), [configuration](wiki/operation/configuration.md), and [sensor wiring](wiki/wiring/index.md).

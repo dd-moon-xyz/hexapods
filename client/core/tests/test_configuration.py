@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,6 +22,7 @@ class ConfigurationTests(unittest.TestCase):
     def test_default_launch_fetches_local_server_preset(self):
         config = {'action': 'start', 'organisms': [{}]}
         with (
+            patch.dict(os.environ, {}, clear=True),
             patch('sys.argv', ['local-client']),
             patch('client_core.client.load_preset', return_value=config) as fetch,
             patch('client_core.client.run', new_callable=AsyncMock) as run,
@@ -44,3 +46,20 @@ class ConfigurationTests(unittest.TestCase):
 
         fetch.assert_not_called()
         run.assert_awaited_once_with('ws://remote:9876/ws', config, Path('capture.mp4'))
+
+    def test_environment_configures_server_url_and_cli_overrides_it(self):
+        for arguments, expected in (
+            ([], 'ws://environment.test:9999/ws'),
+            (['--url', 'ws://override.test/ws'], 'ws://override.test/ws'),
+        ):
+            with (
+                self.subTest(arguments=arguments),
+                patch.dict(os.environ, {'SERVER_ADDRESS': 'environment.test:9999'}),
+                patch('sys.argv', ['local-client', *arguments]),
+                patch('client_core.client.load_preset', return_value={}) as fetch,
+                patch('client_core.client.run', new_callable=AsyncMock) as run,
+            ):
+                main()
+
+            fetch.assert_called_once_with(expected)
+            run.assert_awaited_once_with(expected, {}, None)

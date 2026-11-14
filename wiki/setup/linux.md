@@ -36,7 +36,7 @@ These commands install locked dependencies into separate managed Python 3.14 env
 
 ## Run
 
-From the repository root, run `make server-run`, then `make local-client-run` in another terminal. Both default to port 9877. The browser viewer is at `http://<server-LAN-IP>:9877/`. Configure the Pi with `LENIA_URL=ws://<server-LAN-IP>:9877/ws`. Each connection owns an independent simulation; the API is for a trusted local network.
+From the repository root, run `make server-run`, then `make local-client-run` in another terminal. Both default to port 9877. The browser viewer is at `http://<server-LAN-IP>:9877/`. Configure the Pi with `SERVER_ADDRESS=<server-LAN-IP>:9877`. Each connection owns an independent simulation; the API is for a trusted local network.
 
 The [Python local client](../../client/local/README.md) and [Pi client](../../client/raspi/README.md) use the same shared viewer. The Rust client implementations have been removed; the Rust server remains.
 
@@ -46,7 +46,7 @@ The [Python local client](../../client/local/README.md) and [Pi client](../../cl
 
 The [native CMake project](../../server/native/CMakeLists.txt) compiles `server/native/build/lenia`. Its CUDA architecture is 61 for GTX 1060; adjust `CMAKE_CUDA_ARCHITECTURES` for another target. Compilation does not require a GPU. The [CI workflow](../../.github/workflows/compilation.yml) builds the native target on push.
 
-Run `make server-test` and `make local-client-test` for synthetic protocol and integration tests without CUDA. Run `ctest --test-dir server/native/build --output-on-failure` for native checks. Real simulation testing requires GPU access.
+Run `make server-test` and `make local-client-test` for synthetic protocol and integration tests without CUDA. Both `make local-client-test` and `make raspi-client-test` run Python tests in parallel with `pytest-xdist` (`pytest -n auto`). Run `ctest --test-dir server/native/build --output-on-failure` for native checks. Real simulation testing requires GPU access.
 
 ## Startup troubleshooting
 

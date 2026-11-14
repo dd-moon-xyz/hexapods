@@ -12,7 +12,7 @@ make raspi-client-stop
 make raspi-client-run
 ```
 
-Set `LENIA_WINDOWED=true` in `.env` for an 800×800 window. Ctrl+C exits a foreground client. Movement keys are ignored by the Pi live client and replay; Esc exits.
+Set `WINDOWED=true` in `.env` for an 800×800 window. Ctrl+C exits a foreground client. Movement keys are ignored by the Pi live client and replay; Esc exits.
 
 See [sensor controls](sensor-controls.md) for circle-mode proximity and motion behaviour.
 
