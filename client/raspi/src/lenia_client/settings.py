@@ -7,11 +7,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix='LENIA_', env_file='.env', env_file_encoding='utf-8',
+        env_file='.env', env_file_encoding='utf-8',
         extra='ignore', allow_inf_nan=False,
     )
 
-    url: str = Field(default='ws://192.168.0.15:9877/ws', description='WebSocket URL of the Lenia streaming server.')
+    server_address: str = Field(default='192.168.0.15:9877', validation_alias='SERVER_ADDRESS')
     config: Path | None = Field(default=None, description='Path to a JSON preset; fetch the server preset when unset.')
     windowed: bool = Field(default=False, description='Display in an 800×800 window instead of fullscreen.')
     motion_device: str = Field(default='/dev/i2c-1', description='I2C device path for the motion sensor.')
@@ -22,6 +22,10 @@ class Settings(BaseSettings):
         default=0.5, gt=0, lt=1,
         description='Person bounding-box height as a fraction of the image height required to detect proximity.',
     )
+
+    @property
+    def url(self) -> str:
+        return f'ws://{self.server_address}/ws'
 
     @model_validator(mode='after')
     def validate_motion_axes(self):

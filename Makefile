@@ -48,7 +48,7 @@ local-client-record:
 	cd client/local && uv run --locked local-client --record animation.mp4
 
 local-client-test:
-	cd client/local && uv run --locked python -m unittest discover -s ../core/tests
+	cd client/local && uv run --locked pytest -n auto ../core/tests
 
 local-client-up:
 	cd client/local && pm2 start ecosystem.config.js --only local-client
@@ -59,7 +59,7 @@ local-client-stop:
 	pm2 save
 
 raspi-client-test:
-	cd client/raspi && uv run --locked python -m unittest discover -s tests
+	cd client/raspi && uv run --locked pytest -n auto tests
 
 raspi-client-setup:
 	cd client/raspi && uv sync --locked

@@ -20,3 +20,9 @@ hexapods-client-core = { path = "../core", editable = true }
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["local_client*"]
+
+[dependency-groups]
+dev = [
+    "pytest==9.2.0",
+    "pytest-xdist==3.8.0",
+]

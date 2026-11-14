@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import io
 import json
+import os
 import math
 import tempfile
 import time
@@ -110,7 +111,7 @@ def replay(screen: Viewer, directory: Path, manifest: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--url", default="ws://192.168.0.15:9877/ws")
+    parser.add_argument("--url", default="ws://" + os.getenv("SERVER_ADDRESS", "192.168.0.15:9877") + "/ws")
     parser.add_argument("--config", type=Path)
     parser.add_argument("--directory", type=Path, default=Path("recordings/default"))
     parser.add_argument("--seconds", type=float, default=30)

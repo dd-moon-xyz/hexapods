@@ -21,9 +21,9 @@ class SettingsTests(unittest.TestCase):
     def test_dotenv_loads_all_client_options_and_environment_overrides(self):
         with TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
             env = Path(directory) / '.env'
-            env.write_text('LENIA_URL=ws://localhost:9999/ws\nLENIA_CONFIG=preset.json\n'
-                           'LENIA_WINDOWED=true\nLENIA_MOTION_DEVICE=/dev/i2c-2\n'
-                           'LENIA_MOTION_THRESHOLD=0.2\nLENIA_PERSON_PROXIMITY=0.35\n')
+            env.write_text('SERVER_ADDRESS=localhost:9999\nCONFIG=preset.json\n'
+                           'WINDOWED=true\nMOTION_DEVICE=/dev/i2c-2\n'
+                           'MOTION_THRESHOLD=0.2\nPERSON_PROXIMITY=0.35\n')
             settings = Settings(_env_file=env)
             self.assertEqual(settings.url, 'ws://localhost:9999/ws')
             self.assertEqual(settings.config, Path('preset.json'))
@@ -31,7 +31,9 @@ class SettingsTests(unittest.TestCase):
             self.assertEqual(settings.motion_device, '/dev/i2c-2')
             self.assertEqual(settings.motion_threshold, .2)
             self.assertEqual(settings.person_proximity, .35)
-            os.environ['LENIA_PERSON_PROXIMITY'] = '0.7'
+            os.environ['SERVER_ADDRESS'] = 'remote:8888'
+            self.assertEqual(Settings(_env_file=env).url, 'ws://remote:8888/ws')
+            os.environ['PERSON_PROXIMITY'] = '0.7'
             self.assertEqual(Settings(_env_file=env).person_proximity, .7)
 
     def test_invalid_thresholds_rejected_at_startup(self):

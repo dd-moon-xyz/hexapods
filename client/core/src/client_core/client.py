@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import io
 import json
+import os
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
@@ -230,7 +231,7 @@ def main() -> None:
         description="Display a Hexapod WebSocket animation in pygame"
     )
     parser.add_argument(
-        "--url", default="ws://127.0.0.1:9877/ws", help="Server WebSocket URL"
+        "--url", default="ws://" + os.getenv("SERVER_ADDRESS", "127.0.0.1:9877") + "/ws", help="Server WebSocket URL"
     )
     parser.add_argument(
         "--config",
