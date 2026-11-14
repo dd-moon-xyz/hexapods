@@ -270,12 +270,12 @@ namespace {
         float3 a = stops[palette][i], b = stops[palette][i + 1];
         return make_float3(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f, a.z + (b.z - a.z) * f);
     }
-    __global__ void compose(const Walker* walkers, const float* density, const float* wake, unsigned char* output, int count, int size, bool preview) {
+    __global__ void compose(const Walker* walkers, const float* density, const float* wake, unsigned char* output, int count, int size) {
         int x = blockIdx.x * blockDim.x + threadIdx.x, y = blockIdx.y * blockDim.y + threadIdx.y;
         if (x >= size || y >= size) return;
         float3 rgb = make_float3(0,0,0);
         float2 point = make_float2(x + .5f, y + .5f), center = make_float2(size * .5f, size * .5f);
-        if (preview || norm(sub(point, center)) < size * .5f) {
+        if (norm(sub(point, center)) < size * .5f) {
             for (int i = 0; i < count; ++i) {
                 const Walker& w = walkers[i];
                 float2 local = sub(point, mul(w.position, w.zoom));
@@ -285,7 +285,7 @@ namespace {
                 float py = local.y / (700.f * w.zoom) * RES + RES * .5f - .5f;
                 float value = fmaxf(sample(density + i * RES * RES, px, py), sample(wake + i * RES * RES, px, py));
                 if (value < .015f) continue;
-                float3 c = preview ? make_float3(fminf(1.f, value * 2.f), 0.f, 0.f) : color(value, w.palette);
+                float3 c = color(value, w.palette);
                 rgb.x += c.x * w.health; rgb.y += c.y * w.health; rgb.z += c.z * w.health;
             }
         }
@@ -368,7 +368,7 @@ namespace {
         w.previous = w.position;
         w.heading = std::uniform_real_distribution<float>(-PI,PI)(generator);
         w.palette = std::uniform_int_distribution<int>(0,4)(generator);
-        if (preview) { w.zoom = size / 700.f; w.position = make_float2(-350.f, -350.f); w.previous = w.position; w.heading = -PI * .25f; w.palette = 0; }
+        if (preview) { w.zoom = size / 560.f; w.position = make_float2(-350.f, -350.f); w.previous = w.position; w.heading = -PI * .25f; w.palette = 3; }
         w.health = 1.f;
         w.interactions = std::uniform_int_distribution<int>(interactionMin,interactionMax)(generator);
         if (spawning) {
@@ -528,7 +528,7 @@ int Hexapods::streamHexapod(bool preview) {
                 fluid<<<grid,block>>>(arena.walkers,arena.density,arena.wake,arena.next,count,step/substeps,1.f/substeps);
                 std::swap(arena.wake,arena.next);
             }
-            compose<<<dim3((size+15)/16,(size+15)/16),block>>>(arena.walkers,arena.density,arena.wake,arena.output,count,size,preview);
+            compose<<<dim3((size+15)/16,(size+15)/16),block>>>(arena.walkers,arena.density,arena.wake,arena.output,count,size);
             if (outputSize < size) {
                 resizeHorizontal<<<dim3((outputSize+15)/16,(size+15)/16),block>>>(arena.output,arena.resizeRows,size,outputSize);
                 resizeVertical<<<dim3((outputSize+15)/16,(outputSize+15)/16),block>>>(arena.resizeRows,arena.resized,size,outputSize);
