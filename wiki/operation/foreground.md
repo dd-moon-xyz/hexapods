@@ -12,6 +12,8 @@ make raspi-client-stop
 make raspi-client-run
 ```
 
+The local and Raspberry Pi `-run`, `-up`, and `-restart` Make targets first run `make fallback-download`. It downloads a missing or outdated animation and checks its SHA-256 checksum; an already verified archive is reused without network access.
+
 Set `WINDOWED=true` in `.env` for an 800×800 window. Ctrl+C exits a foreground client. Movement keys are ignored by the Pi live client; Esc exits.
 
 See [sensor controls](sensor-controls.md) for circle-mode proximity and motion behaviour.

@@ -19,7 +19,7 @@ server-restart:
 	python3 scripts/connection.py run server pm2 restart ecosystem.config.js --only server --update-env
 	pm2 save
 
-local-client-restart:
+local-client-restart: fallback-download
 	pm2 stop local-client
 	python3 scripts/connection.py run local pm2 restart ecosystem.config.js --only local-client --update-env
 	pm2 save
@@ -62,13 +62,13 @@ server-stop:
 local-client-setup: fallback-download
 	cd client/local && uv sync --locked
 
-local-client-run:
+local-client-run: fallback-download
 	python3 scripts/connection.py run local uv run --locked local-client
 
 local-client-test: fallback-download
 	cd client/local && uv run --locked pytest -n auto ../core/tests
 
-local-client-up:
+local-client-up: fallback-download
 	python3 scripts/connection.py run local pm2 start ecosystem.config.js --only local-client
 	pm2 save
 
@@ -82,10 +82,10 @@ raspi-client-test:
 raspi-client-setup: fallback-download
 	cd client/raspi && uv sync --locked
 
-raspi-client-run:
+raspi-client-run: fallback-download
 	python3 scripts/connection.py run raspi uv run --locked hexapods-client
 
-raspi-client-up:
+raspi-client-up: fallback-download
 	python3 scripts/connection.py run raspi pm2 start ecosystem.config.js --only hexapods-client
 	pm2 save
 
@@ -93,7 +93,7 @@ raspi-client-stop:
 	pm2 stop hexapods-client
 	pm2 save
 
-raspi-client-restart:
+raspi-client-restart: fallback-download
 	pm2 stop hexapods-client
 	python3 scripts/connection.py run raspi pm2 restart ecosystem.config.js --only hexapods-client --update-env
 	pm2 save
