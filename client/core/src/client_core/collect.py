@@ -14,7 +14,7 @@ def main() -> None:
     parser.add_argument("--url", default="ws://192.168.0.15:9877/ws")
     parser.add_argument("--config", type=Path)
     parser.add_argument("--directory", type=Path, default=Path("recordings/default"))
-    parser.add_argument("--seconds", type=float, default=30)
+    parser.add_argument("--seconds", type=float, default=300)
     parser.add_argument("--output-size", type=int, default=800)
     args = parser.parse_args()
     try:
