@@ -6,20 +6,21 @@ import os
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import pygame
 from websockets.asyncio.client import connect
 from websockets.exceptions import WebSocketException
 
 from client_core.rendering import Viewer
+from client_core.auth import headers
 
 
-def load_preset(url: str) -> dict:
+def load_preset(url: str, token: str | None = None) -> dict:
     address = urlsplit(url)
     scheme = {"ws": "http", "wss": "https"}[address.scheme]
     path = address.path.rsplit("/", 1)[0] + "/preset"
-    with urlopen(urlunsplit((scheme, address.netloc, path, "", "")), timeout=30) as response:
+    with urlopen(Request(urlunsplit((scheme, address.netloc, path, "", "")), headers=headers(token)), timeout=30) as response:
         return json.load(response)
 
 
@@ -102,10 +103,10 @@ async def record_video(path: Path, fps: int):
 
 
 async def display_stream(
-    url: str, config: dict, commands: asyncio.Queue, viewer: Viewer, record: Path | None = None, population: dict | None = None
+    url: str, config: dict, commands: asyncio.Queue, viewer: Viewer, record: Path | None = None, population: dict | None = None, token: str | None = None
 ) -> None:
     async with (
-        connect(url, max_size=4 * 1024 * 1024, compression=None) as websocket,
+        connect(url, additional_headers=headers(token), max_size=4 * 1024 * 1024, compression=None) as websocket,
         AsyncExitStack() as recording,
     ):
         video = None
@@ -150,7 +151,7 @@ async def display_stream(
 
 async def run(
     url: str, config: dict, record: Path | None = None,
-    sensor_monitor=None, windowed: bool = True, fit_display: bool = False,
+    sensor_monitor=None, windowed: bool = True, fit_display: bool = False, token: str | None = None,
 ) -> None:
     pygame.display.init()
     viewer = Viewer(fullscreen=not windowed, fit_display=fit_display) if fit_display else Viewer()
@@ -171,8 +172,8 @@ async def run(
         sensors = asyncio.create_task(sensor_monitor(commands, population))
 
     stream = asyncio.create_task(
-        display_stream(url, config, commands, viewer, record, population)
-        if sensors is not None else display_stream(url, config, commands, viewer, record)
+        display_stream(url, config, commands, viewer, record, population, token=token)
+        if sensors is not None else display_stream(url, config, commands, viewer, record, token=token)
     )
     try:
         while not stream.done():
@@ -231,7 +232,7 @@ def main() -> None:
         description="Display a Hexapod WebSocket animation in pygame"
     )
     parser.add_argument(
-        "--url", default="ws://" + os.getenv("SERVER_ADDRESS", "127.0.0.1:9877") + "/ws", help="Server WebSocket URL"
+        "--url", default=os.getenv("SERVER_URL") or "ws://" + os.getenv("SERVER_ADDRESS", "127.0.0.1:9877") + "/ws", help="Server WebSocket URL"
     )
     parser.add_argument(
         "--config",

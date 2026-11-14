@@ -11,11 +11,12 @@ import pygame
 from websockets.asyncio.client import connect
 from websockets.exceptions import WebSocketException
 
+from client_core.auth import headers
 from client_core.rendering import Viewer
 from client_core.replay import replay
 
 
-async def capture(url: str, directory: Path) -> dict:
+async def capture(url: str, directory: Path, token: str | None = None) -> dict:
     generation = uuid4().hex
     frames = 0
     started = False
@@ -26,7 +27,7 @@ async def capture(url: str, directory: Path) -> dict:
         "fps": fps, "dt": 0.1, "organisms": [{"scale": 1, "x": 0, "y": 0}],
     }
 
-    async with connect(url, max_size=4 * 1024 * 1024, compression=None) as websocket:
+    async with connect(url, additional_headers=headers(token), max_size=4 * 1024 * 1024, compression=None) as websocket:
         await websocket.send(json.dumps(config))
         for _ in range(7200):
             message = await asyncio.wait_for(websocket.recv(), timeout=30)
@@ -61,14 +62,14 @@ async def capture(url: str, directory: Path) -> dict:
     raise ValueError("Preview did not finish a crossing within 7200 frames")
 
 
-async def record(url: str, directory: Path) -> dict:
+async def record(url: str, directory: Path, token: str | None = None) -> dict:
     if shutil.which("ffmpeg") is None:
         raise ValueError("Install FFmpeg before recording the preview")
 
     directory.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=directory.parent, prefix=".preview-") as temporary:
         staging = Path(temporary)
-        manifest = await capture(url, staging)
+        manifest = await capture(url, staging, token)
         pattern = manifest["frames"][0].rsplit("-", 1)[0] + "-%06d.jpg"
         process = await asyncio.create_subprocess_exec(
             "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
@@ -95,7 +96,7 @@ async def record(url: str, directory: Path) -> dict:
     return manifest
 
 
-def main(default_url: str) -> None:
+def main(default_url: str, token: str | None = None) -> None:
     parser = argparse.ArgumentParser(description="Record and loop one large diagonal hexapod crossing")
     parser.add_argument("--url", default=default_url)
     parser.add_argument("--directory", type=Path, default=Path("recordings/single-hexapod"))
@@ -109,7 +110,7 @@ def main(default_url: str) -> None:
             manifest = json.loads(manifest_path.read_text())
         else:
             print(f"Recording one diagonal crossing from {args.url}…", flush=True)
-            manifest = asyncio.run(record(args.url, args.directory))
+            manifest = asyncio.run(record(args.url, args.directory, token))
         if not args.record_only:
             pygame.display.init()
             screen = Viewer(fullscreen=not args.windowed, fit_display=True)

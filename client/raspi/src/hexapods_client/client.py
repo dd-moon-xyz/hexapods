@@ -18,7 +18,7 @@ def main() -> None:
             raise ValueError("Client options are configured in .env; see .env.example")
 
         settings = Settings()
-        config = load_preset(settings.url) if settings.config is None else json.loads(settings.config.read_text())
+        config = load_preset(settings.url, settings.hexapods_token) if settings.config is None else json.loads(settings.config.read_text())
         monitor = partial(
             monitor_sensors, device=settings.motion_device,
             person_proximity=settings.person_proximity, motion_threshold=settings.motion_threshold,
@@ -30,7 +30,7 @@ def main() -> None:
 
         asyncio.run(run(
             settings.url, config, sensor_monitor=sensors,
-            windowed=settings.windowed, fit_display=True,
+            windowed=settings.windowed, fit_display=True, token=settings.hexapods_token,
         ))
 
     except (OSError, ValueError, WebSocketException, pygame.error) as error:
@@ -41,7 +41,8 @@ def main() -> None:
 
 
 def preview() -> None:
-    preview_main(Settings().url)
+    settings = Settings()
+    preview_main(settings.url, settings.hexapods_token)
 
 
 if __name__ == "__main__":

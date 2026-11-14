@@ -17,7 +17,8 @@ class ConfigurationTests(unittest.TestCase):
         ):
             with self.subTest(url=url), patch('client_core.client.urlopen', return_value=io.BytesIO(b'{"fps": 60}')) as fetch:
                 self.assertEqual(load_preset(url), {'fps': 60})
-                fetch.assert_called_once_with(endpoint, timeout=30)
+                self.assertEqual(fetch.call_args.args[0].full_url, endpoint)
+                self.assertEqual(fetch.call_args.kwargs, {"timeout": 30})
 
     def test_default_launch_fetches_local_server_preset(self):
         config = {'action': 'start', 'organisms': [{}]}

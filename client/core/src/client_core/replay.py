@@ -15,6 +15,7 @@ from websockets.asyncio.client import connect
 from websockets.exceptions import WebSocketException
 
 from .client import load_preset
+from .auth import headers
 from .rendering import Viewer
 
 
@@ -47,7 +48,7 @@ async def _capture(url: str, config: dict, directory: Path, seconds: float, prog
     received = 0
     fps = float(config.get("fps", 60))
     target = math.ceil(seconds * fps)
-    async with connect(url, max_size=4 * 1024 * 1024, max_queue=1, compression=None) as websocket:
+    async with connect(url, additional_headers=headers(), max_size=4 * 1024 * 1024, max_queue=1, compression=None) as websocket:
         await websocket.send(json.dumps(config))
         while True:
             message = await asyncio.wait_for(websocket.recv(), timeout=30)
@@ -111,7 +112,7 @@ def replay(screen: Viewer, directory: Path, manifest: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--url", default="ws://" + os.getenv("SERVER_ADDRESS", "192.168.0.15:9877") + "/ws")
+    parser.add_argument("--url", default=os.getenv("SERVER_URL") or "ws://" + os.getenv("SERVER_ADDRESS", "192.168.0.15:9877") + "/ws")
     parser.add_argument("--config", type=Path)
     parser.add_argument("--directory", type=Path, default=Path("recordings/default"))
     parser.add_argument("--seconds", type=float, default=30)

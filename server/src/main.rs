@@ -1,5 +1,6 @@
 mod app;
 mod arena;
+mod auth;
 mod frames;
 mod models;
 mod worker;
@@ -15,14 +16,16 @@ use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 async fn main() -> Result<()> {
     let mut bind: SocketAddr = "0.0.0.0:9877".parse()?;
     let mut worker = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("native/build/hexapods");
+    let mut allow_unauthenticated = false;
     let mut args = std::env::args().skip(1);
     while let Some(option) = args.next() {
         match option.as_str() {
+            "--allow-unauthenticated" => allow_unauthenticated = true,
             "--bind" => bind = args.next().context("Missing --bind address")?.parse()?,
             "--worker" => worker = args.next().context("Missing --worker executable")?.into(),
             "-h" | "--help" => {
                 println!(
-                    "Uncapped Hexapods Rust server\n\nUsage: server [--bind 0.0.0.0:9877] [--worker /path/to/hexapods]"
+                    "Uncapped Hexapods Rust server\n\nUsage: server [--bind 0.0.0.0:9877] [--worker /path/to/hexapods] [--allow-unauthenticated]"
                 );
                 return Ok(());
             }
@@ -31,6 +34,7 @@ async fn main() -> Result<()> {
     }
     let (shutdown, receiver) = tokio::sync::watch::channel(false);
     let state = app::AppState {
+        auth: auth::Auth::load(allow_unauthenticated)?,
         worker: Arc::new(worker),
         shutdown: receiver,
     };

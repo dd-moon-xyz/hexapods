@@ -28,6 +28,7 @@ class PreviewTests(unittest.IsolatedAsyncioTestCase):
     async def test_capture_waits_for_center_crossing_and_full_exit(self):
         images = (jpeg(), jpeg((0, 0)), jpeg(), jpeg((14, 14)), jpeg((28, 28)), jpeg())
         async def server(websocket):
+            self.assertEqual(websocket.request.headers["Authorization"], "Bearer preview-test-token")
             config = json.loads(await websocket.recv())
             self.assertTrue(config["preview"])
             self.assertEqual(len(config["organisms"]), 1)
@@ -40,7 +41,7 @@ class PreviewTests(unittest.IsolatedAsyncioTestCase):
             directory = Path(temporary)
             async with serve(server, "127.0.0.1", 0) as listener:
                 port = listener.sockets[0].getsockname()[1]
-                manifest = await asyncio.wait_for(capture(f"ws://127.0.0.1:{port}", directory), 5)
+                manifest = await asyncio.wait_for(capture(f"ws://127.0.0.1:{port}", directory, "preview-test-token"), 5)
 
             self.assertEqual(tuple((directory / name).read_bytes() for name in manifest["frames"]), images[1:])
 

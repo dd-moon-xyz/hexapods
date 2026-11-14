@@ -11,6 +11,8 @@ class Settings(BaseSettings):
         extra='ignore', allow_inf_nan=False,
     )
 
+    hexapods_token: str = Field(default="", repr=False)
+    server_url: str | None = None
     server_address: str = Field(default='192.168.0.15:9877', validation_alias='SERVER_ADDRESS')
     config: Path | None = Field(default=None, description='Path to a JSON preset; fetch the server preset when unset.')
     windowed: bool = Field(default=False, description='Display in an 800×800 window instead of fullscreen.')
@@ -25,7 +27,7 @@ class Settings(BaseSettings):
 
     @property
     def url(self) -> str:
-        return f'ws://{self.server_address}/ws'
+        return self.server_url or f'ws://{self.server_address}/ws'
 
     @model_validator(mode='after')
     def validate_motion_axes(self):
