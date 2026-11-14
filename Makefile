@@ -3,22 +3,7 @@
 export PATH := $(or $(CARGO_HOME),$(HOME)/.cargo)/bin:$(HOME)/.local/bin:$(PATH)
 CARGO ?= cargo
 
-.PHONY: server-auth-add server-auth-revoke server-configure local-client-configure raspi-client-configure server-restart local-client-restart
-
-server-auth-add:
-	@python3 scripts/connection.py add server
-
-server-auth-revoke:
-	@python3 scripts/connection.py revoke server
-
-server-configure:
-	@python3 scripts/connection.py configure server
-
-local-client-configure:
-	@python3 scripts/connection.py configure local
-
-raspi-client-configure:
-	@python3 scripts/connection.py configure raspi
+.PHONY: server-restart local-client-restart
 
 server-restart:
 	python3 scripts/connection.py run server pm2 restart ecosystem.config.js --only server --update-env
