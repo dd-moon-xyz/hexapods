@@ -10,10 +10,10 @@ Run `make collect` to collect a fresh recording without opening a display, then 
 For custom collection settings:
 
 ```bash
-uv run --locked lenia-collect --seconds 30 --output-size 800 --directory recordings/new
+uv run --locked hexapods-collect --seconds 30 --output-size 800 --directory recordings/new
 ```
 
-The collector also accepts `--url` and `--config`.
+The collector also accepts `--url` and `--config`. For one large hexapod crossing diagonally instead of the live population, use `make single-hexapod`; see [CUDA preview recording](../simulation/python-experiments.md) for capture-only and MP4 output options.
 
 See [replay](replay.md) to play saved frames.
 

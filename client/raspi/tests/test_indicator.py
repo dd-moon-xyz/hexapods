@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from lenia_client.indicator import IndicatorLight
-from lenia_client.sensors import SensorInputs
+from hexapods_client.indicator import IndicatorLight
+from hexapods_client.sensors import SensorInputs
 
 
 class IndicatorTests(unittest.TestCase):
@@ -35,7 +35,7 @@ class IndicatorTests(unittest.TestCase):
             inputs.indicator.update.assert_called_with(.5)
 
     def test_indicator_failure_closes_open_sensors(self):
-        with patch('lenia_client.sensors.CameraSensor') as near, patch('lenia_client.sensors.MotionSensor') as motion, patch('lenia_client.sensors.IndicatorLight', side_effect=OSError('GPIO busy')):
+        with patch('hexapods_client.sensors.CameraSensor') as near, patch('hexapods_client.sensors.MotionSensor') as motion, patch('hexapods_client.sensors.IndicatorLight', side_effect=OSError('GPIO busy')):
             with self.assertRaisesRegex(OSError, 'GPIO busy'):
                 SensorInputs('/dev/i2c-1', .5, .12)
             near.return_value.close.assert_called_once()
@@ -46,7 +46,7 @@ class HardwarePWMTests(unittest.TestCase):
     def test_hardware_duty_scaling_clamping_and_shutdown(self):
         from pathlib import Path
         from tempfile import TemporaryDirectory
-        from lenia_client.indicator import HardwarePWM
+        from hexapods_client.indicator import HardwarePWM
         with TemporaryDirectory() as directory:
             root = Path(directory)
             chip = root / 'devices' / '1f00098000.pwm' / 'pwm' / 'pwmchip0'
@@ -68,7 +68,7 @@ class HardwarePWMTests(unittest.TestCase):
     def test_missing_rp1_controller_is_reported(self):
         from pathlib import Path
         from tempfile import TemporaryDirectory
-        from lenia_client.indicator import HardwarePWM
+        from hexapods_client.indicator import HardwarePWM
         with TemporaryDirectory() as directory:
             with self.assertRaisesRegex(OSError, 'RP1 PWM0 controller unavailable'):
                 HardwarePWM(Path(directory))
@@ -76,7 +76,7 @@ class HardwarePWMTests(unittest.TestCase):
     def test_pwm1_controller_is_not_selected_for_gpio18(self):
         from pathlib import Path
         from tempfile import TemporaryDirectory
-        from lenia_client.indicator import HardwarePWM
+        from hexapods_client.indicator import HardwarePWM
         with TemporaryDirectory() as directory:
             root = Path(directory)
             chip = root / 'devices' / '1f0009c000.pwm' / 'pwm' / 'pwmchip0'

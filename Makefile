@@ -1,4 +1,5 @@
 .PHONY: raspi-client-test server-setup server-run server-test server-up server-stop local-client-setup local-client-run local-client-record local-client-test local-client-up local-client-stop raspi-client-setup raspi-client-run replay collect raspi-client-up raspi-client-stop raspi-client-restart raspi-client-logs replay-start replay-stop replay-restart replay-logs
+.PHONY: single-hexapod
 
 export PATH := $(or $(CARGO_HOME),$(HOME)/.cargo)/bin:$(HOME)/.local/bin:$(PATH)
 CARGO ?= cargo
@@ -21,7 +22,7 @@ rust-setup:
 
 server-setup:
 	cmake -S server/native -B server/native/build -DCMAKE_BUILD_TYPE=Release
-	cmake --build server/native/build --target lenia --parallel 2
+	cmake --build server/native/build --target hexapods --parallel 2
 	cd server && $(CARGO) build --release --locked
 
 server-run:
@@ -65,44 +66,47 @@ raspi-client-setup:
 	cd client/raspi && uv sync --locked
 
 raspi-client-run:
-	cd client/raspi && uv run --locked lenia-client
+	cd client/raspi && uv run --locked hexapods-client
 
 replay:
-	cd client/raspi && uv run --locked lenia-replay
+	cd client/raspi && uv run --locked hexapods-replay
 
 collect:
-	cd client/raspi && uv run --locked lenia-collect
+	cd client/raspi && uv run --locked hexapods-collect
+
+single-hexapod:
+	cd client/raspi && uv run --locked hexapods-preview
 
 raspi-client-up:
-	cd client/raspi && pm2 start ecosystem.config.js --only lenia-client
+	cd client/raspi && pm2 start ecosystem.config.js --only hexapods-client
 	pm2 save
 
 raspi-client-stop:
-	pm2 stop lenia-client
+	pm2 stop hexapods-client
 	pm2 save
 
 raspi-client-restart:
-	cd client/raspi && pm2 restart ecosystem.config.js --only lenia-client --update-env
+	cd client/raspi && pm2 restart ecosystem.config.js --only hexapods-client --update-env
 	pm2 save
 
 raspi-client-logs:
-	pm2 logs lenia-client
+	pm2 logs hexapods-client
 
 replay-start:
-	cd client/raspi && pm2 start ecosystem.config.js --only lenia-replay
+	cd client/raspi && pm2 start ecosystem.config.js --only hexapods-replay
 	pm2 save
 
 replay-stop:
-	pm2 stop lenia-replay
+	pm2 stop hexapods-replay
 	pm2 save
 
 replay-restart:
-	cd client/raspi && pm2 restart ecosystem.config.js --only lenia-replay --update-env
+	cd client/raspi && pm2 restart ecosystem.config.js --only hexapods-replay --update-env
 	pm2 save
 
 replay-logs:
-	pm2 logs lenia-replay
+	pm2 logs hexapods-replay
 
-raspi-client-run replay collect raspi-client-up raspi-client-restart replay-start replay-restart: export XDG_RUNTIME_DIR ?= /run/user/$(shell id -u)
-raspi-client-run replay collect raspi-client-up raspi-client-restart replay-start replay-restart: export WAYLAND_DISPLAY ?= wayland-0
-raspi-client-run replay collect raspi-client-up raspi-client-restart replay-start replay-restart: export SDL_VIDEODRIVER := wayland
+raspi-client-run replay collect single-hexapod raspi-client-up raspi-client-restart replay-start replay-restart: export XDG_RUNTIME_DIR ?= /run/user/$(shell id -u)
+raspi-client-run replay collect single-hexapod raspi-client-up raspi-client-restart replay-start replay-restart: export WAYLAND_DISPLAY ?= wayland-0
+raspi-client-run replay collect single-hexapod raspi-client-up raspi-client-restart replay-start replay-restart: export SDL_VIDEODRIVER := wayland

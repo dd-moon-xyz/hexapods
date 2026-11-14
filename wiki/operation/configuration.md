@@ -5,7 +5,7 @@ title: Client configuration
 
 # Client configuration
 
-Raspberry Pi live-client settings are loaded and validated in Python by `client/raspi/src/lenia_client/settings.py`. Set `SERVER_ADDRESS` in `client/raspi/.env`; `.env.example` contains only that variable. All other settings have defaults in the Pydantic settings object and can be omitted from `.env`. Environment variables override the file. Run `make raspi-client-restart` after changes under PM2. Both `make raspi-client-run` and `make raspi-client-up` use the same configuration. Both Python clients import `client_core`; the Pi adds camera, motion, and LED controls.
+Raspberry Pi live-client settings are loaded and validated in Python by `client/raspi/src/hexapods_client/settings.py`. Set `SERVER_ADDRESS` in `client/raspi/.env`; `.env.example` contains only that variable. All other settings have defaults in the Pydantic settings object and can be omitted from `.env`. Environment variables override the file. Run `make raspi-client-restart` after changes under PM2. Both `make raspi-client-run` and `make raspi-client-up` use the same configuration. Both Python clients import `client_core`; the Pi adds camera, motion, and LED controls.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |

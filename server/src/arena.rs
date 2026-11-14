@@ -72,7 +72,10 @@ impl Arena {
                 eprintln!("Hexapod died: slot={index}");
                 self.living[index] = false;
             }
-            if self.dead_frames[index] >= 5 && !self.outward.load(Ordering::Relaxed) {
+            if self.dead_frames[index] >= 5
+                && !self.config.preview
+                && !self.outward.load(Ordering::Relaxed)
+            {
                 self.pending[index] = Some(self.schedule_birth(index));
             }
         }

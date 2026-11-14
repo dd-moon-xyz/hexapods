@@ -2,8 +2,8 @@ import struct
 import unittest
 from unittest.mock import Mock
 
-from lenia_client.motion import MotionDetector, MotionSensor
-from lenia_client.sensors import steering_command
+from hexapods_client.motion import MotionDetector, MotionSensor
+from hexapods_client.sensors import steering_command
 
 
 class MotionTests(unittest.TestCase):
@@ -104,7 +104,7 @@ class MotionTests(unittest.TestCase):
         sensor.detector = self.detector()
         sensor.detector.update((.2, 0, 1), (0, 0, 0), .05)
         sensor._read = Mock(return_value=b'\x00')
-        with patch('lenia_client.motion.time.monotonic', side_effect=(.5, 1.1)):
+        with patch('hexapods_client.motion.time.monotonic', side_effect=(.5, 1.1)):
             self.assertTrue(sensor.poll())
             self.assertTrue(sensor.poll())
         self.assertEqual(sensor.detector.vector, (1, 0))
@@ -113,11 +113,11 @@ class MotionTests(unittest.TestCase):
 class SensorMonitorTests(unittest.IsolatedAsyncioTestCase):
     async def test_sensor_poll_maps_vector_and_keeps_camera_controls_radial(self):
         from unittest.mock import patch
-        from lenia_client.sensors import SensorInputs
+        from hexapods_client.sensors import SensorInputs
 
-        with patch('lenia_client.sensors.CameraSensor') as camera, \
-                patch('lenia_client.sensors.MotionSensor') as motion, \
-                patch('lenia_client.sensors.IndicatorLight'):
+        with patch('hexapods_client.sensors.CameraSensor') as camera, \
+                patch('hexapods_client.sensors.MotionSensor') as motion, \
+                patch('hexapods_client.sensors.IndicatorLight'):
             camera.return_value.active = False
             camera.return_value.strength = .8
             motion.return_value.poll.return_value = True
@@ -134,14 +134,14 @@ class SensorMonitorTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_camera_transitions_preserve_latched_motion_direction(self):
         from unittest.mock import patch
-        from lenia_client.sensors import SensorInputs
+        from hexapods_client.sensors import SensorInputs
 
         detector = MotionDetector()
         detector.update((0, 0, 1), (0, 0, 0), 0)
         detector.update((.2, 0, 1), (0, 0, 0), .05)
-        with patch('lenia_client.sensors.CameraSensor') as camera, \
-                patch('lenia_client.sensors.MotionSensor') as motion, \
-                patch('lenia_client.sensors.IndicatorLight'):
+        with patch('hexapods_client.sensors.CameraSensor') as camera, \
+                patch('hexapods_client.sensors.MotionSensor') as motion, \
+                patch('hexapods_client.sensors.IndicatorLight'):
             inputs = SensorInputs('/dev/i2c-1', .5, .12)
             motion.return_value.vector = detector.vector
             motion.return_value.strength = detector.strength
@@ -160,13 +160,13 @@ class SensorMonitorTests(unittest.IsolatedAsyncioTestCase):
     async def test_initial_mode_and_transitions_and_cleanup(self):
         import asyncio
         from unittest.mock import patch
-        from lenia_client.sensors import monitor_sensors
+        from hexapods_client.sensors import monitor_sensors
 
         inputs = Mock()
         idle, near, moving = (steering_command(False, False), steering_command(True, False), steering_command(False, True))
         inputs.poll.side_effect = [idle, near, moving, moving, near, idle, OSError('disconnected')]
         commands = asyncio.Queue()
-        with patch('lenia_client.sensors.SensorInputs', return_value=inputs):
+        with patch('hexapods_client.sensors.SensorInputs', return_value=inputs):
             with self.assertRaisesRegex(OSError, 'disconnected'):
                 await monitor_sensors(commands)
         self.assertEqual([commands.get_nowait() for _ in range(commands.qsize())],
@@ -175,8 +175,8 @@ class SensorMonitorTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_partial_startup_failure_closes_camera(self):
         from unittest.mock import patch
-        from lenia_client.sensors import SensorInputs
-        with patch('lenia_client.sensors.CameraSensor') as camera, patch('lenia_client.sensors.MotionSensor', side_effect=OSError('missing motion sensor')):
+        from hexapods_client.sensors import SensorInputs
+        with patch('hexapods_client.sensors.CameraSensor') as camera, patch('hexapods_client.sensors.MotionSensor', side_effect=OSError('missing motion sensor')):
             with self.assertRaisesRegex(OSError, 'missing motion sensor'):
                 SensorInputs('/dev/i2c-1', .5, .12)
             camera.return_value.close.assert_called_once()

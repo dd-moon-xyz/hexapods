@@ -4,10 +4,10 @@ const os = require("os")
 module.exports = {
     apps: [
         {
-            name: "lenia-client",
+            name: "hexapods-client",
             cwd: __dirname,
             script: path.join(os.homedir(), ".local/bin/uv"),
-            args: ["run", "--locked", "lenia-client"],
+            args: ["run", "--locked", "hexapods-client"],
             interpreter: "none",
             watch: false,
             min_uptime: 0,
@@ -20,10 +20,10 @@ module.exports = {
             },
         },
         {
-            name: "lenia-replay",
+            name: "hexapods-replay",
             cwd: __dirname,
             script: path.join(os.homedir(), ".local/bin/uv"),
-            args: ["run", "--locked", "lenia-replay"],
+            args: ["run", "--locked", "hexapods-replay"],
             interpreter: "none",
             watch: false,
             min_uptime: 0,

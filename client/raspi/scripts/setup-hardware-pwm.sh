@@ -20,7 +20,7 @@ if [ ! -d /sys/bus/platform/devices/1f00098000.pwm/pwm ]; then
     exit 1
 fi
 if ! grep -Fqx "$overlay" "$config"; then
-    cp -p "$config" "$config.lenia-led-backup-$(date +%Y%m%d-%H%M%S)"
-    printf '\n[all]\n# Lenia client LED: GPIO18 / physical pin 12\n%s\n' "$overlay" >> "$config"
+    cp -p "$config" "$config.hexapods-led-backup-$(date +%Y%m%d-%H%M%S)"
+    printf '\n[all]\n# Hexapods client LED: GPIO18 / physical pin 12\n%s\n' "$overlay" >> "$config"
 fi
 echo 'PWM0 enabled now and configured for reboot. Run: make restart'

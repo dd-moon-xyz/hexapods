@@ -1,9 +1,9 @@
 import asyncio
 import math
 
-from lenia_client.indicator import IndicatorLight
-from lenia_client.motion import MotionSensor
-from lenia_client.person import CameraSensor
+from hexapods_client.indicator import IndicatorLight
+from hexapods_client.motion import MotionSensor
+from hexapods_client.person import CameraSensor
 
 
 def steering_command(proximity_active, motion_active, proximity_strength=0.0, motion_strength=1.0,

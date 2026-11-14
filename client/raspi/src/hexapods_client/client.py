@@ -7,8 +7,9 @@ import pygame
 from websockets.exceptions import WebSocketException
 
 from client_core.client import load_preset, run
-from lenia_client.sensors import monitor_sensors
-from lenia_client.settings import Settings
+from client_core.preview import main as preview_main
+from hexapods_client.sensors import monitor_sensors
+from hexapods_client.settings import Settings
 
 
 def main() -> None:
@@ -37,6 +38,10 @@ def main() -> None:
         raise SystemExit(1) from error
     except KeyboardInterrupt:
         pass
+
+
+def preview() -> None:
+    preview_main(Settings().url)
 
 
 if __name__ == "__main__":

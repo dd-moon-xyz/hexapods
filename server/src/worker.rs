@@ -19,7 +19,11 @@ pub struct Worker {
 impl Worker {
     pub async fn start(path: &Path, config: &Start) -> Result<Self> {
         let mut process = Command::new(path)
-            .arg("--stream-hexapod")
+            .arg(if config.preview {
+                "--stream-hexapod-preview"
+            } else {
+                "--stream-hexapod"
+            })
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .kill_on_drop(true)
@@ -65,7 +69,7 @@ impl Worker {
         self.output.read_line(&mut response).await?;
         ensure!(
             response == "READY\n",
-            "CUDA worker failed to acknowledge command; check GPU access and rebuild server/native/build/lenia"
+            "CUDA worker failed to acknowledge command; check GPU access and rebuild server/native/build/hexapods"
         );
         Ok(())
     }

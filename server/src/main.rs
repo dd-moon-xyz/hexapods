@@ -14,7 +14,7 @@ use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 #[tokio::main]
 async fn main() -> Result<()> {
     let mut bind: SocketAddr = "0.0.0.0:9877".parse()?;
-    let mut worker = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("native/build/lenia");
+    let mut worker = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("native/build/hexapods");
     let mut args = std::env::args().skip(1);
     while let Some(option) = args.next() {
         match option.as_str() {
@@ -22,7 +22,7 @@ async fn main() -> Result<()> {
             "--worker" => worker = args.next().context("Missing --worker executable")?.into(),
             "-h" | "--help" => {
                 println!(
-                    "Uncapped Hexapods Rust server\n\nUsage: server [--bind 0.0.0.0:9877] [--worker /path/to/lenia]"
+                    "Uncapped Hexapods Rust server\n\nUsage: server [--bind 0.0.0.0:9877] [--worker /path/to/hexapods]"
                 );
                 return Ok(());
             }

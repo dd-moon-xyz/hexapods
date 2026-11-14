@@ -14,22 +14,22 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_ARCHITECTURES 61)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/build)
 
-add_executable(lenia
-    source/lenia/lenia.cpp
-    source/lenia/stream_hexapod.cu
+add_executable(hexapods
+    source/hexapods/hexapods.cpp
+    source/hexapods/stream_hexapod.cu
 )
-target_include_directories(lenia PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-target_compile_options(lenia PRIVATE
+target_include_directories(hexapods PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+target_compile_options(hexapods PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-O3 -Wall -Wextra -Werror>
     $<$<COMPILE_LANGUAGE:CUDA>:--ptxas-options=-O3>
 )
 
 if(BUILD_TESTING)
     add_executable(stream_resize_test tests/stream_resize.cpp)
-    target_include_directories(stream_resize_test PRIVATE source/lenia)
+    target_include_directories(stream_resize_test PRIVATE source/hexapods)
     add_test(NAME compilation
         COMMAND ${CMAKE_COMMAND} --build ${PROJECT_BINARY_DIR}
-            --clean-first --target lenia --config $<CONFIG> --parallel
+            --clean-first --target hexapods --config $<CONFIG> --parallel
     )
     set_tests_properties(compilation PROPERTIES RUN_SERIAL TRUE)
 endif()

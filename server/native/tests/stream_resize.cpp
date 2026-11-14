@@ -12,11 +12,11 @@ int main() {
     for (int y = 0; y < size; ++y)
         for (int x = 0; x < outputSize; ++x)
             for (int c = 0; c < 3; ++c)
-                rows[(y * outputSize + x) * 3 + c] = Lenia::boxHorizontal(source.data(), size, outputSize, x, y, c);
+                rows[(y * outputSize + x) * 3 + c] = Hexapods::boxHorizontal(source.data(), size, outputSize, x, y, c);
     for (int y = 0; y < outputSize; ++y)
         for (int x = 0; x < outputSize; ++x)
             for (int c = 0; c < 3; ++c)
-                output[(y * outputSize + x) * 3 + c] = Lenia::boxVertical(rows.data(), size, outputSize, x, y, c);
+                output[(y * outputSize + x) * 3 + c] = Hexapods::boxVertical(rows.data(), size, outputSize, x, y, c);
     std::cout.write(reinterpret_cast<char*>(output.data()), output.size());
     return std::cout ? 0 : 1;
 }

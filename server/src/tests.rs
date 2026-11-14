@@ -39,6 +39,7 @@ fn fixture(alive: bool) -> (TempDir, PathBuf) {
     let script = format!(
         r#"#!/bin/sh
 cd '{}'
+printf '%s\n' "$1" > mode
 echo $$ > pid
 IFS= read -r header
 printf '%s\n' "$header" >> commands
@@ -100,6 +101,35 @@ fn validates_configuration_without_fps_cap() {
     assert!(Start::parse(r#"{"organisms":[{}]}"#).is_err());
     preset().validate().unwrap();
     assert_eq!((preset().scale_min, preset().scale_max), (1.0, 1.1));
+}
+
+#[test]
+fn preview_requires_one_organism() {
+    let mut value = serde_json::to_value(config()).unwrap();
+    value["preview"] = json!(true);
+    assert!(Start::parse(&value.to_string()).unwrap().preview);
+    value["organisms"] = json!([{}, {}]);
+    assert!(Start::parse(&value.to_string()).is_err());
+}
+
+#[tokio::test]
+async fn preview_selects_native_mode_and_never_schedules_births() {
+    let (directory, path) = fixture(false);
+    let mut config = config();
+    config.preview = true;
+    let mut arena = Arena::start(&path, config).await.unwrap();
+    for _ in 0..8 {
+        arena.frame().await.unwrap().await.unwrap().unwrap();
+    }
+    sleep(Duration::from_millis(20)).await;
+    arena.frame().await.unwrap().await.unwrap().unwrap();
+    arena.close().await.unwrap();
+    assert_eq!(
+        fs::read_to_string(directory.path().join("mode")).unwrap(),
+        "--stream-hexapod-preview\n"
+    );
+    let commands = fs::read_to_string(directory.path().join("commands")).unwrap();
+    assert!(!commands.lines().any(|line| line.starts_with("r ")));
 }
 
 #[test]

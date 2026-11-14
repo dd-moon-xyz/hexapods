@@ -25,7 +25,7 @@ uv run --locked local-client --url ws://127.0.0.1:9877/ws
 From `server/`, change the listening address or select another native executable:
 
 ```bash
-./target/release/server --bind 127.0.0.1:9877 --worker native/build/lenia
+./target/release/server --bind 127.0.0.1:9877 --worker native/build/hexapods
 ```
 
 `GET /` serves the existing browser viewer. `GET /preset` returns 50 organisms in a 1024×1024 circular world. `/ws` accepts the existing start configuration, `next`, `stop`, radial controls, and vector movement JSON. Optional population messages precede JPEG frames. World/output sizes, pixelation, birth-rate bounds, scale bounds (`scale_min`/`scale_max`, default random float 1.0–1.1), and interaction-count bounds follow the existing API. Unknown fields and invalid values are rejected.

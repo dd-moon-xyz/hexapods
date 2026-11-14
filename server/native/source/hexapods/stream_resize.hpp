@@ -2,17 +2,17 @@
 
 // RGB box filtering shared by CUDA kernels and the CPU reference tests.
 #ifdef __CUDACC__
-#define LENIA_RESIZE_HD __host__ __device__
+#define HEXAPODS_RESIZE_HD __host__ __device__
 #else
-#define LENIA_RESIZE_HD
+#define HEXAPODS_RESIZE_HD
 #endif
 
-namespace Lenia {
-    LENIA_RESIZE_HD inline int boxEdge(int pixel, int size, int outputSize) {
+namespace Hexapods {
+    HEXAPODS_RESIZE_HD inline int boxEdge(int pixel, int size, int outputSize) {
         return (2 * pixel * size + outputSize) / (2 * outputSize);
     }
 
-    LENIA_RESIZE_HD inline unsigned char boxHorizontal(
+    HEXAPODS_RESIZE_HD inline unsigned char boxHorizontal(
         const unsigned char* source, int size, int outputSize, int x, int y, int channel
     ) {
         const int first = boxEdge(x, size, outputSize);
@@ -24,7 +24,7 @@ namespace Lenia {
         return static_cast<unsigned char>((sum + count / 2) / count);
     }
 
-    LENIA_RESIZE_HD inline unsigned char boxVertical(
+    HEXAPODS_RESIZE_HD inline unsigned char boxVertical(
         const unsigned char* rows, int size, int outputSize, int x, int y, int channel
     ) {
         // Filter in logical top-down coordinates, retaining bottom-up wire rows.
@@ -39,4 +39,4 @@ namespace Lenia {
     }
 }
 
-#undef LENIA_RESIZE_HD
+#undef HEXAPODS_RESIZE_HD

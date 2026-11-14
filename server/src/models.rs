@@ -33,6 +33,7 @@ pub struct Start {
     pub dt: f64,
     pub space_speed_multiplier: f64,
     pub population_updates: bool,
+    pub preview: bool,
     pub scale_min: f64,
     pub scale_max: f64,
     pub birth_rate_min: f64,
@@ -55,6 +56,7 @@ impl Default for Start {
             dt: 0.1,
             space_speed_multiplier: 2.0,
             population_updates: false,
+            preview: false,
             scale_min: 1.0,
             scale_max: 1.1,
             birth_rate_min: 1.0,
@@ -129,6 +131,10 @@ impl Start {
         ensure!(
             (1..=100).contains(&self.organisms.len()),
             "Provide 1–100 organisms"
+        );
+        ensure!(
+            !self.preview || self.organisms.len() == 1,
+            "Preview requires exactly one organism"
         );
         ensure!(
             self.organisms

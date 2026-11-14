@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 from pydantic import ValidationError
 
-from lenia_client.settings import Settings
+from hexapods_client.settings import Settings
 
 
 class SettingsTests(unittest.TestCase):
@@ -47,15 +47,15 @@ class SettingsTests(unittest.TestCase):
                         Settings(_env_file=None, **{field: value})
 
     def test_main_passes_settings_to_runtime_and_loads_json_preset(self):
-        from lenia_client.client import main
+        from hexapods_client.client import main
         with TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
             preset = Path(directory) / 'preset.json'
             preset.write_text('{"boundary": "circle"}')
             settings = Settings(_env_file=None, config=preset, person_proximity=.7)
-            with patch('sys.argv', ['lenia-client']), \
-                    patch('lenia_client.client.Settings', return_value=settings), \
-                    patch('lenia_client.client.load_preset') as fetch, \
-                    patch('lenia_client.client.run', new_callable=AsyncMock) as run:
+            with patch('sys.argv', ['hexapods-client']), \
+                    patch('hexapods_client.client.Settings', return_value=settings), \
+                    patch('hexapods_client.client.load_preset') as fetch, \
+                    patch('hexapods_client.client.run', new_callable=AsyncMock) as run:
                 main()
                 fetch.assert_not_called()
                 self.assertEqual(run.await_args.args, (settings.url, {'boundary': 'circle'}))

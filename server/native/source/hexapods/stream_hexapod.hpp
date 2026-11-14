@@ -1,4 +1,4 @@
 #pragma once
-namespace Lenia {
+namespace Hexapods {
     int streamHexapod(bool preview = false);
 }

@@ -3,15 +3,16 @@ requires = ["setuptools==84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lenia-client"
+name = "hexapods-client"
 version = "0.1.0"
 requires-python = ">=3.14,<3.15"
 dependencies = ["hexapods-client-core", "pydantic-settings==2.16.2"]
 
 [project.scripts]
-lenia-client = "lenia_client.client:main"
-lenia-replay = "client_core.replay:main"
-lenia-collect = "client_core.collect:main"
+hexapods-client = "hexapods_client.client:main"
+hexapods-replay = "client_core.replay:main"
+hexapods-collect = "client_core.collect:main"
+hexapods-preview = "hexapods_client.client:preview"
 
 [tool.uv]
 python-preference = "only-managed"
@@ -21,7 +22,7 @@ hexapods-client-core = { path = "../core", editable = true }
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["lenia_client*"]
+include = ["hexapods_client*"]
 
 [dependency-groups]
 dev = [

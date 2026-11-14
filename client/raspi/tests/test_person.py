@@ -2,9 +2,9 @@ import unittest
 import os
 from unittest.mock import Mock, patch
 
-from lenia_client.person import CameraSensor, PersonProximity
-from lenia_client.person_camera import person_height
-from lenia_client.sensors import steering_command
+from hexapods_client.person import CameraSensor, PersonProximity
+from hexapods_client.person_camera import person_height
+from hexapods_client.sensors import steering_command
 
 
 class PersonTests(unittest.TestCase):
@@ -61,7 +61,7 @@ class CameraWorkerTests(unittest.TestCase):
         read, self.writer = os.pipe()
         self.process = Mock(stdout=os.fdopen(read, 'rb'), returncode=1)
         self.process.poll.return_value = None
-        with patch('lenia_client.person.subprocess.Popen', return_value=self.process):
+        with patch('hexapods_client.person.subprocess.Popen', return_value=self.process):
             self.sensor = CameraSensor()
 
     def tearDown(self):

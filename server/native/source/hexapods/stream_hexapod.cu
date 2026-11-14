@@ -298,13 +298,13 @@ namespace {
         int x = blockIdx.x * blockDim.x + threadIdx.x, y = blockIdx.y * blockDim.y + threadIdx.y;
         if (x >= outputSize || y >= size) return;
         for (int channel = 0; channel < 3; ++channel)
-            rows[(y * outputSize + x) * 3 + channel] = Lenia::boxHorizontal(source, size, outputSize, x, y, channel);
+            rows[(y * outputSize + x) * 3 + channel] = Hexapods::boxHorizontal(source, size, outputSize, x, y, channel);
     }
     __global__ void resizeVertical(const unsigned char* rows, unsigned char* output, int size, int outputSize) {
         int x = blockIdx.x * blockDim.x + threadIdx.x, y = blockIdx.y * blockDim.y + threadIdx.y;
         if (x >= outputSize || y >= outputSize) return;
         for (int channel = 0; channel < 3; ++channel)
-            output[(y * outputSize + x) * 3 + channel] = Lenia::boxVertical(rows, size, outputSize, x, y, channel);
+            output[(y * outputSize + x) * 3 + channel] = Hexapods::boxVertical(rows, size, outputSize, x, y, channel);
     }
     __global__ void contact(Walker* walkers, const float* density, float2* totals, int count) {
         int index = blockIdx.x;
@@ -368,7 +368,7 @@ namespace {
         w.previous = w.position;
         w.heading = std::uniform_real_distribution<float>(-PI,PI)(generator);
         w.palette = std::uniform_int_distribution<int>(0,4)(generator);
-        if (preview) { w.zoom = size / 1050.f; w.position = make_float2(0.f, 0.f); w.previous = w.position; w.heading = -PI * .25f; w.palette = 0; }
+        if (preview) { w.zoom = size / 1050.f; w.position = make_float2(-350.f, -350.f); w.previous = w.position; w.heading = -PI * .25f; w.palette = 0; }
         w.health = 1.f;
         w.interactions = std::uniform_int_distribution<int>(interactionMin,interactionMax)(generator);
         if (spawning) {
@@ -424,7 +424,7 @@ namespace {
     };
 }
 
-int Lenia::streamHexapod(bool preview) {
+int Hexapods::streamHexapod(bool preview) {
     int size, fps, count;
     float dt, boost;
     if (!(std::cin >> size >> fps >> dt >> boost >> count) || size < 256 || size > 1024 || fps < 1 || fps > 60 || count < 1 || count > 100 || !std::isfinite(dt) || dt <= 0 || dt > .2f || !std::isfinite(boost) || boost < 1) return 1;

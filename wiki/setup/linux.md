@@ -44,7 +44,7 @@ The [Python local client](../../client/local/README.md) and [Pi client](../../cl
 
 ## Build details
 
-The [native CMake project](../../server/native/CMakeLists.txt) compiles `server/native/build/lenia`. Its CUDA architecture is 61 for GTX 1060; adjust `CMAKE_CUDA_ARCHITECTURES` for another target. Compilation does not require a GPU. The [CI workflow](../../.github/workflows/compilation.yml) builds the native target on push.
+The [native CMake project](../../server/native/CMakeLists.txt) compiles `server/native/build/hexapods`. Its CUDA architecture is 61 for GTX 1060; adjust `CMAKE_CUDA_ARCHITECTURES` for another target. Compilation does not require a GPU. The [CI workflow](../../.github/workflows/compilation.yml) builds the native target on push.
 
 Run `make server-test` and `make local-client-test` for synthetic protocol and integration tests without CUDA. Both `make local-client-test` and `make raspi-client-test` run Python tests in parallel with `pytest-xdist` (`pytest -n auto`). Run `ctest --test-dir server/native/build --output-on-failure` for native checks. Real simulation testing requires GPU access.
 
