@@ -28,7 +28,7 @@ Install the [Pi hardware prerequisites](../../client/raspi/README.md), then set 
 make raspi-client-setup
 ```
 
-The Pi camera helper runs `/usr/bin/python3`, separately from the managed client interpreter, to use the system's Picamera2 and libcamera bindings. On Raspberry Pi OS, install `sudo apt install python3-picamera2 imx500-all`. The helper loads the existing IMX500 SSD model and sends height metadata to the client. I²C motion and hardware PWM controls remain Python code.
+All Python commands in the Makefile run through uv, including the environment loader and fallback asset helpers. These standalone helpers use `uv run --no-project --python 3.14`; client commands use their locked project environments. The Pi camera helper also launches through uv, explicitly selecting `/usr/bin/python3` with managed Python and automatic Python downloads disabled, to use the system's Picamera2 and libcamera bindings. On Raspberry Pi OS, install `sudo apt install python3-picamera2 imx500-all`. The helper loads the existing IMX500 SSD model and sends height metadata to the client. I²C motion and hardware PWM controls remain Python code.
 
 Use a 64-bit Raspberry Pi OS graphical desktop. The Pi does not require CUDA or Rust. Configure `.env` as described in [client configuration](../operation/configuration.md); run `make raspi-client-run` for live mode.
 

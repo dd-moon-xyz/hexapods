@@ -41,7 +41,10 @@ class CameraSensor(PersonProximity):
         self.last_sample = time.monotonic()
         self.received = False
         self.process = subprocess.Popen(
-            ['/usr/bin/python3', '-u', str(Path(__file__).with_name('person_camera.py'))],
+            [
+                'uv', 'run', '--no-project', '--no-managed-python', '--python', '/usr/bin/python3',
+                '--no-python-downloads', '/usr/bin/python3', '-u', str(Path(__file__).with_name('person_camera.py')),
+            ],
             stdout=subprocess.PIPE,
         )
         os.set_blocking(self.process.stdout.fileno(), False)

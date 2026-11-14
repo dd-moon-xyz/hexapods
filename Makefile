@@ -2,13 +2,13 @@
 .PHONY: fallback-record fallback-download fallback-publish
 
 fallback-download:
-	python3 scripts/fallback_asset.py download
+	uv run --no-project --python 3.14 python scripts/fallback_asset.py download
 
 fallback-publish:
-	uv run --locked --directory client/local python ../../scripts/fallback_asset.py publish
+	uv run --no-project --python 3.14 python scripts/fallback_asset.py publish
 
 fallback-record:
-	python3 scripts/connection.py run local uv run --locked python ../../scripts/bundle_fallback.py
+	uv run --no-project --python 3.14 python scripts/connection.py run local uv run --locked python ../../scripts/bundle_fallback.py
 
 export PATH := $(or $(CARGO_HOME),$(HOME)/.cargo)/bin:$(HOME)/.local/bin:$(PATH)
 CARGO ?= cargo
@@ -16,12 +16,12 @@ CARGO ?= cargo
 .PHONY: server-restart local-client-restart
 
 server-restart:
-	python3 scripts/connection.py run server pm2 restart ecosystem.config.js --only server --update-env
+	uv run --no-project --python 3.14 python scripts/connection.py run server pm2 restart ecosystem.config.js --only server --update-env
 	pm2 save
 
 local-client-restart: fallback-download
 	pm2 stop local-client
-	python3 scripts/connection.py run local pm2 restart ecosystem.config.js --only local-client --update-env
+	uv run --no-project --python 3.14 python scripts/connection.py run local pm2 restart ecosystem.config.js --only local-client --update-env
 	pm2 save
 
 .PHONY: rust-setup
@@ -46,13 +46,13 @@ server-setup:
 	cd server && $(CARGO) build --release --locked
 
 server-run:
-	python3 scripts/connection.py run server ./target/release/server
+	uv run --no-project --python 3.14 python scripts/connection.py run server ./target/release/server
 
 server-test:
 	cd server && $(CARGO) test --release --locked
 
 server-up:
-	python3 scripts/connection.py run server pm2 start ecosystem.config.js --only server
+	uv run --no-project --python 3.14 python scripts/connection.py run server pm2 start ecosystem.config.js --only server
 	pm2 save
 
 server-stop:
@@ -63,13 +63,13 @@ local-client-setup: fallback-download
 	cd client/local && uv sync --locked
 
 local-client-run: fallback-download
-	python3 scripts/connection.py run local uv run --locked local-client
+	uv run --no-project --python 3.14 python scripts/connection.py run local uv run --locked local-client
 
 local-client-test: fallback-download
 	cd client/local && uv run --locked pytest -n auto ../core/tests
 
 local-client-up: fallback-download
-	python3 scripts/connection.py run local pm2 start ecosystem.config.js --only local-client
+	uv run --no-project --python 3.14 python scripts/connection.py run local pm2 start ecosystem.config.js --only local-client
 	pm2 save
 
 local-client-stop:
@@ -83,10 +83,10 @@ raspi-client-setup: fallback-download
 	cd client/raspi && uv sync --locked
 
 raspi-client-run: fallback-download
-	python3 scripts/connection.py run raspi uv run --locked hexapods-client
+	uv run --no-project --python 3.14 python scripts/connection.py run raspi uv run --locked hexapods-client
 
 raspi-client-up: fallback-download
-	python3 scripts/connection.py run raspi pm2 start ecosystem.config.js --only hexapods-client
+	uv run --no-project --python 3.14 python scripts/connection.py run raspi pm2 start ecosystem.config.js --only hexapods-client
 	pm2 save
 
 raspi-client-stop:
@@ -95,7 +95,7 @@ raspi-client-stop:
 
 raspi-client-restart: fallback-download
 	pm2 stop hexapods-client
-	python3 scripts/connection.py run raspi pm2 restart ecosystem.config.js --only hexapods-client --update-env
+	uv run --no-project --python 3.14 python scripts/connection.py run raspi pm2 restart ecosystem.config.js --only hexapods-client --update-env
 	pm2 save
 
 raspi-client-logs:

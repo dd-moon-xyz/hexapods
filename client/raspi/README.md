@@ -13,7 +13,7 @@ cp client/raspi/.env.example client/raspi/.env
 make raspi-client-run
 ```
 
-Setup installs managed Python 3.14 with locked dependencies. The camera helper runs `/usr/bin/python3` to access Raspberry Pi OS's Picamera2/libcamera packages and the installed IMX500 model. The previous Python camera path is restored; native `rpicam-vid` metadata parsing is removed. Rust, CUDA, and SDL3 are not Pi-client requirements. Pygame wheels provide SDL2; source builds may need SDL2 development libraries.
+Setup installs managed Python 3.14 with locked dependencies. The camera helper launches through uv, selecting `/usr/bin/python3` to access Raspberry Pi OS's Picamera2/libcamera packages and the installed IMX500 model. The previous Python camera path is restored; native `rpicam-vid` metadata parsing is removed. Rust, CUDA, and SDL3 are not Pi-client requirements. Pygame wheels provide SDL2; source builds may need SDL2 development libraries.
 
 The client uses fullscreen Wayland by default, or an 800×800 window with `WINDOWED=true`. It fits frames with nearest-pixel sampling and letterboxing. Camera proximity overrides motion; the LED follows living population. Sensors update every 50 ms. Camera model loading allows 180 seconds for the first inference, then five seconds between samples. Camera, motion, LED, and stream resources are closed on exit.
 
