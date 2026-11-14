@@ -6,6 +6,8 @@ import os
 import math
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
+from itertools import cycle
 from pathlib import Path
 from uuid import uuid4
 
@@ -84,6 +86,10 @@ async def _capture(url: str, config: dict, directory: Path, seconds: float, prog
     return manifest
 
 
+def decode(frame: bytes) -> pygame.Surface:
+    return pygame.image.load(io.BytesIO(frame), "frame.jpg")
+
+
 def replay(screen: Viewer, directory: Path, manifest: dict) -> None:
     frames = manifest["frames"]
     fps = float(manifest.get("fps", 60))
@@ -93,21 +99,30 @@ def replay(screen: Viewer, directory: Path, manifest: dict) -> None:
 
     if not frames or not 0 < fps < float("inf"):
         raise ValueError("Recording has no frames or invalid FPS")
-    # Keep compressed frames in memory; never read files during playback.
-    images = tuple((directory / name).read_bytes() for name in names)
-    deadline = time.monotonic()
-    index = 0
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-                return
-        screen.draw(pygame.image.load(io.BytesIO(images[index]), "frame.jpg"))
-        index = (index + 1) % len(images)
-        deadline += 1 / fps
-        now = time.monotonic()
-        if deadline < now:
-            deadline = now
-        time.sleep(max(0, deadline - now))
+    workers = min(4, os.process_cpu_count() or 1)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        # Keep compressed frames in memory; bound decoded frames ahead of playback.
+        loading = pool.map(Path.read_bytes, (directory / name for name in names), buffersize=workers * 2)
+        with tqdm(loading, total=len(names), desc="Loading frames", unit="frame", ascii=True,
+                  colour="#808080", dynamic_ncols=True) as progress:
+            images = tuple(progress)
+
+        decoded = pool.map(decode, cycle(images), buffersize=workers * 2)
+        deadline = time.monotonic()
+        for index, frame in enumerate(decoded):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                    return
+            screen.draw(frame)
+            if index == 0:
+                print(f"Playback started: {len(images)} frames at {fps:g} FPS, "
+                      f"{len(images) / fps:.2f} seconds per loop. Press Escape to exit.", flush=True)
+
+            deadline += 1 / fps
+            now = time.monotonic()
+            if deadline < now:
+                deadline = now
+            time.sleep(max(0, deadline - now))
 
 
 def main() -> None:

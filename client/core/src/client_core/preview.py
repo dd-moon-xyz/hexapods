@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pygame
+from tqdm import tqdm
 from websockets.asyncio.client import connect
 from websockets.exceptions import WebSocketException
 
@@ -17,6 +18,12 @@ from client_core.replay import replay
 
 
 async def capture(url: str, directory: Path, token: str | None = None) -> dict:
+    with tqdm(desc="Capturing", unit="frame", ascii=True,
+              colour="#808080", dynamic_ncols=True) as progress:
+        return await _capture(url, directory, token, progress)
+
+
+async def _capture(url: str, directory: Path, token: str | None, progress: tqdm) -> dict:
     generation = uuid4().hex
     frames = 0
     started = False
@@ -24,7 +31,7 @@ async def capture(url: str, directory: Path, token: str | None = None) -> dict:
     fps = 60
     config = {
         "action": "start", "preview": True, "size": 1024, "output_size": 800,
-        "fps": fps, "dt": 0.1, "organisms": [{"scale": 1, "x": 0, "y": 0}],
+        "fps": fps, "dt": 0.2, "organisms": [{"scale": 1, "x": 0, "y": 0}],
     }
 
     async with connect(url, additional_headers=headers(token), max_size=4 * 1024 * 1024, compression=None) as websocket:
@@ -44,6 +51,7 @@ async def capture(url: str, directory: Path, token: str | None = None) -> dict:
             if not started:
                 raise ValueError("Preview frame received before stream started")
 
+            progress.update(1)
             image = pygame.image.load(io.BytesIO(message), "frame.jpg")
             visible = any(pygame.image.tobytes(image, "RGB"))
             width, height = image.get_size()

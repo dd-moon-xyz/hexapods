@@ -5,7 +5,7 @@ title: Replay
 
 # Replay
 
-`make replay` collects 30 seconds of JPEG frames at the server preset FPS on its first run, then plays them fullscreen in a continuous loop. Later runs use the saved recording without contacting the server. Playback uses a fixed frame rate and ignores capture delays. Frames are preloaded into memory and stored in `recordings/default/`, which Git ignores. Ctrl+C exits foreground playback; movement keys are ignored and Esc exits.
+`make replay` collects 30 seconds of JPEG frames at the server preset FPS on its first run, then plays them fullscreen in a continuous loop. Later runs use the saved recording without contacting the server. Playback uses a fixed frame rate and ignores capture delays. Frames are preloaded into memory and stored in `recordings/default/`, which Git ignores. Up to four worker threads load compressed JPEGs and decode upcoming frames in order, with a bounded queue; drawing remains on the main thread. Preloading shows a gray ASCII `tqdm` bar with the exact frame total, percentage, elapsed time, and estimated remaining time; the same loading bar appears before single-hexapod playback. After drawing the first frame, playback prints the frame count, FPS, and duration of each loop. Ctrl+C exits foreground playback; movement keys are ignored and Esc exits.
 
 Stop the live client with `make raspi-client-stop` before replay so both processes do not use the display at once. Use `make replay-start`, `make replay-stop`, `make replay-restart`, and `make replay-logs` to manage replay through PM2. PM2 saves the process list for startup restoration and restarts replay after an exit, including closing its window; use `make replay-stop` to keep it stopped.
 

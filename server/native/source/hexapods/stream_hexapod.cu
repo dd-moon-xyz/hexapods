@@ -285,7 +285,7 @@ namespace {
                 float py = local.y / (700.f * w.zoom) * RES + RES * .5f - .5f;
                 float value = fmaxf(sample(density + i * RES * RES, px, py), sample(wake + i * RES * RES, px, py));
                 if (value < .015f) continue;
-                float3 c = color(value, w.palette);
+                float3 c = preview ? make_float3(fminf(1.f, value * 2.f), 0.f, 0.f) : color(value, w.palette);
                 rgb.x += c.x * w.health; rgb.y += c.y * w.health; rgb.z += c.z * w.health;
             }
         }
@@ -368,7 +368,7 @@ namespace {
         w.previous = w.position;
         w.heading = std::uniform_real_distribution<float>(-PI,PI)(generator);
         w.palette = std::uniform_int_distribution<int>(0,4)(generator);
-        if (preview) { w.zoom = size / 1050.f; w.position = make_float2(-350.f, -350.f); w.previous = w.position; w.heading = -PI * .25f; w.palette = 0; }
+        if (preview) { w.zoom = size / 700.f; w.position = make_float2(-350.f, -350.f); w.previous = w.position; w.heading = -PI * .25f; w.palette = 0; }
         w.health = 1.f;
         w.interactions = std::uniform_int_distribution<int>(interactionMin,interactionMax)(generator);
         if (spawning) {
