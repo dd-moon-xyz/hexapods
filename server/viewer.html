@@ -10,6 +10,7 @@ canvas { width: 100%; background: black; }
 button, select { margin: 8px 8px 8px 0; padding: 8px; }
 </style>
 <h1>Hexapod stream</h1>
+<form id="login"><input id="token" type="password" placeholder="Client API token" aria-label="Client API token" autocomplete="off"><button>Sign in</button></form>
 <textarea id="config" aria-label="Simulation configuration"></textarea>
 <button id="start">Start / restart</button><button id="pause">Pause</button><button id="stop">Stop</button>
 <p id="status">Ready</p>
@@ -19,9 +20,23 @@ const config = document.querySelector('#config');
 const status = document.querySelector('#status');
 const canvas = document.querySelector('#canvas');
 const context = canvas.getContext('2d');
-fetch('/preset').then(response => response.json()).then(data => {
+function loadPreset() {
+fetch('/preset').then(response => { if (!response.ok) throw new Error('Sign in to load the preset'); return response.json(); }).then(data => {
   config.value = JSON.stringify(data, null, 2);
 }).catch(error => status.textContent = error.message);
+}
+loadPreset();
+document.querySelector('#login').onsubmit = async event => {
+  event.preventDefault();
+  const input = document.querySelector('#token');
+  try {
+    const response = await fetch('/login', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token: input.value})});
+    input.value = '';
+    if (!response.ok) throw new Error('Sign in failed');
+    status.textContent = 'Signed in';
+    loadPreset();
+  } catch (error) { status.textContent = error.message; }
+};
 let socket, paused = false, pending = false, circular = false;
 const heldKeys = new Map();
 function requestFrame() {

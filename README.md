@@ -14,6 +14,8 @@ Install the [server prerequisites](server/README.md) and [Python client prerequi
 make rust-setup
 make server-setup
 make local-client-setup
+make server-auth-add
+make server-configure
 make server-run
 ```
 
@@ -22,6 +24,7 @@ make server-run
 In a second terminal:
 
 ```bash
+make local-client-configure
 make local-client-run
 ```
 

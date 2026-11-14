@@ -36,7 +36,7 @@ These commands install locked dependencies into separate managed Python 3.14 env
 
 ## Run
 
-From the repository root, run `make server-run`, then `make local-client-run` in another terminal. Both default to port 9877. The browser viewer is at `http://<server-LAN-IP>:9877/`. Configure the Pi with `SERVER_ADDRESS=<server-LAN-IP>:9877`. Each connection owns an independent simulation; the API is for a trusted local network.
+From the repository root, run `make server-run`, then `make local-client-run` in another terminal. Both default to port 9877. The browser viewer is at `http://<server-LAN-IP>:9877/`. Configure the Pi with `SERVER_ADDRESS=<server-LAN-IP>:9877`. Each authenticated connection owns an independent simulation, with one active connection per token. Configure token hashes and client credentials as described in [server setup](../../server/README.md). Internet connections require a TLS reverse proxy and `wss://`; use `--allow-unauthenticated` only for trusted local development.
 
 The [Python local client](../../client/local/README.md) and [Pi client](../../client/raspi/README.md) use the same shared viewer. The Rust client implementations have been removed; the Rust server remains.
 

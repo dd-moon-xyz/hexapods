@@ -185,6 +185,7 @@ async fn api_streams_population_movement_and_stop_without_pacing() {
     let (_directory, path) = fixture(true);
     let (shutdown, receiver) = watch::channel(false);
     let state = app::AppState {
+        auth: crate::auth::Auth::load(true).unwrap(),
         worker: Arc::new(path),
         shutdown: receiver.clone(),
     };

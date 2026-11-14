@@ -10,23 +10,26 @@ From the repository root:
 
 ```bash
 make server-setup
+make server-auth-add
+make server-configure
 make server-run
 ```
 
-Setup builds the existing CUDA executable and the locked Rust release binary. The default address is `0.0.0.0:9877`. The API is intended for a trusted local network and has no authentication.
+Setup builds the existing CUDA executable and the locked Rust release binary. The default address is `0.0.0.0:9877`. Authentication is required by default. Set `HEXAPODS_TOKEN_HASHES` to comma-separated `client:sha256hex` entries (one independent token per client). For trusted local development only, pass `--allow-unauthenticated`. Each token permits one active simulation connection.
+
+Run `make server-auth-add` for each client. It prompts for a client name, saves only its token hash in `server/.env`, and prints the token once for copying to the client. Reusing a client name rotates its token; `make server-auth-revoke` removes it. Restart a foreground server with `make server-run`, or a PM2 server with `make server-restart`, to apply changes and close existing sessions. `make server-configure` saves the listen address and optional browser HTTPS origin. Saved files have owner-only permissions and are ignored by Git; process environment variables take precedence.
+
+For internet access, bind the server to `127.0.0.1:9877` behind a TLS reverse proxy with WebSocket upgrade support. Connect clients using `wss://your-host/ws`; keep port 9877 private. TLS termination and certificates must be configured on the deployment host. Set `HEXAPODS_BROWSER_ORIGIN=https://your-host` to enable browser login from that exact origin. The viewer exchanges its API token for a Secure, HttpOnly, SameSite=Strict cookie valid for one hour; cookies require HTTPS. Invalid credentials are rejected before WebSocket upgrade or worker creation. Browser login sessions are held in memory and cleared on restart. An already connected WebSocket lasts until it closes or the server restarts.
 
 Connect the Python desktop client:
 
 ```bash
-cd client/local
-uv run --locked local-client --url ws://127.0.0.1:9877/ws
+make local-client-setup
+make local-client-configure
+make local-client-run
 ```
 
-From `server/`, change the listening address or select another native executable:
-
-```bash
-./target/release/server --bind 127.0.0.1:9877 --worker native/build/lenia
-```
+`make local-client-configure` prompts for the server WebSocket URL and token, saving them in `client/local/.env`. For a Raspberry Pi, use `make raspi-client-configure` and `make raspi-client-run` instead. Enter `wss://your-host/ws` for internet access, or `ws://server-LAN-IP:9877/ws` for a trusted LAN. Run `make server-configure` to select `0.0.0.0:9877` for direct LAN access, or retain `127.0.0.1:9877` behind a reverse proxy. Existing run, record, collect, replay, and PM2 targets load their respective `.env` files automatically. Restart a background desktop client with `make local-client-restart` or a Pi client with `make raspi-client-restart` after configuration changes.
 
 `GET /` serves the existing browser viewer. `GET /preset` returns 50 organisms in a 1024×1024 circular world. `/ws` accepts the existing start configuration, `next`, `stop`, radial controls, and vector movement JSON. Optional population messages precede JPEG frames. World/output sizes, pixelation, birth-rate bounds, scale bounds (`scale_min`/`scale_max`, default random float 1.0–1.1), and interaction-count bounds follow the existing API. Unknown fields and invalid values are rejected.
 

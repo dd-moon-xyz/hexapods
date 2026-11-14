@@ -18,6 +18,7 @@ use tokio::{sync::watch, time::timeout};
 
 #[derive(Clone)]
 pub struct AppState {
+    pub auth: Arc<crate::auth::Auth>,
     pub worker: Arc<PathBuf>,
     pub shutdown: watch::Receiver<bool>,
 }
@@ -27,13 +28,30 @@ pub fn router(state: AppState) -> Router {
         .route("/", get(|| async { Html(include_str!("../viewer.html")) }))
         .route("/preset", get(|| async { Json(models::preset()) }))
         .route("/ws", any(upgrade))
+        .route("/login", axum::routing::post(crate::auth::login))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            crate::auth::authorize,
+        ))
         .with_state(state)
 }
 
-async fn upgrade(State(state): State<AppState>, ws: WebSocketUpgrade) -> Response {
+async fn upgrade(
+    State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
+    ws: WebSocketUpgrade,
+) -> Response {
+    let Some(permit) = state.auth.acquire(&headers) else {
+        return axum::response::IntoResponse::into_response(
+            axum::http::StatusCode::TOO_MANY_REQUESTS,
+        );
+    };
     ws.max_message_size(4 * 1024 * 1024)
         .max_frame_size(4 * 1024 * 1024)
-        .on_upgrade(move |socket| handle(socket, state))
+        .on_upgrade(move |socket| async move {
+            let _permit = permit;
+            handle(socket, state).await;
+        })
 }
 
 async fn handle(mut socket: WebSocket, mut state: AppState) {

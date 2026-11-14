@@ -3,6 +3,31 @@
 export PATH := $(or $(CARGO_HOME),$(HOME)/.cargo)/bin:$(HOME)/.local/bin:$(PATH)
 CARGO ?= cargo
 
+.PHONY: server-auth-add server-auth-revoke server-configure local-client-configure raspi-client-configure server-restart local-client-restart
+
+server-auth-add:
+	@python3 scripts/connection.py add server
+
+server-auth-revoke:
+	@python3 scripts/connection.py revoke server
+
+server-configure:
+	@python3 scripts/connection.py configure server
+
+local-client-configure:
+	@python3 scripts/connection.py configure local
+
+raspi-client-configure:
+	@python3 scripts/connection.py configure raspi
+
+server-restart:
+	python3 scripts/connection.py run server pm2 restart ecosystem.config.js --only server --update-env
+	pm2 save
+
+local-client-restart:
+	python3 scripts/connection.py run local pm2 restart ecosystem.config.js --only local-client --update-env
+	pm2 save
+
 .PHONY: rust-setup
 rust-setup:
 	sudo apt update
@@ -25,13 +50,13 @@ server-setup:
 	cd server && $(CARGO) build --release --locked
 
 server-run:
-	cd server && ./target/release/server
+	python3 scripts/connection.py run server ./target/release/server
 
 server-test:
 	cd server && $(CARGO) test --release --locked
 
 server-up:
-	cd server && pm2 start ecosystem.config.js --only server
+	python3 scripts/connection.py run server pm2 start ecosystem.config.js --only server
 	pm2 save
 
 server-stop:
@@ -42,16 +67,16 @@ local-client-setup:
 	cd client/local && uv sync --locked
 
 local-client-run:
-	cd client/local && uv run --locked local-client
+	python3 scripts/connection.py run local uv run --locked local-client
 
 local-client-record:
-	cd client/local && uv run --locked local-client --record animation.mp4
+	python3 scripts/connection.py run local uv run --locked local-client --record animation.mp4
 
 local-client-test:
 	cd client/local && uv run --locked pytest -n auto ../core/tests
 
 local-client-up:
-	cd client/local && pm2 start ecosystem.config.js --only local-client
+	python3 scripts/connection.py run local pm2 start ecosystem.config.js --only local-client
 	pm2 save
 
 local-client-stop:
@@ -65,16 +90,16 @@ raspi-client-setup:
 	cd client/raspi && uv sync --locked
 
 raspi-client-run:
-	cd client/raspi && uv run --locked lenia-client
+	python3 scripts/connection.py run raspi uv run --locked lenia-client
 
 replay:
-	cd client/raspi && uv run --locked lenia-replay
+	python3 scripts/connection.py run raspi uv run --locked lenia-replay
 
 collect:
-	cd client/raspi && uv run --locked lenia-collect
+	python3 scripts/connection.py run raspi uv run --locked lenia-collect
 
 raspi-client-up:
-	cd client/raspi && pm2 start ecosystem.config.js --only lenia-client
+	python3 scripts/connection.py run raspi pm2 start ecosystem.config.js --only lenia-client
 	pm2 save
 
 raspi-client-stop:
@@ -82,14 +107,14 @@ raspi-client-stop:
 	pm2 save
 
 raspi-client-restart:
-	cd client/raspi && pm2 restart ecosystem.config.js --only lenia-client --update-env
+	python3 scripts/connection.py run raspi pm2 restart ecosystem.config.js --only lenia-client --update-env
 	pm2 save
 
 raspi-client-logs:
 	pm2 logs lenia-client
 
 replay-start:
-	cd client/raspi && pm2 start ecosystem.config.js --only lenia-replay
+	python3 scripts/connection.py run raspi pm2 start ecosystem.config.js --only lenia-replay
 	pm2 save
 
 replay-stop:
@@ -97,7 +122,7 @@ replay-stop:
 	pm2 save
 
 replay-restart:
-	cd client/raspi && pm2 restart ecosystem.config.js --only lenia-replay --update-env
+	python3 scripts/connection.py run raspi pm2 restart ecosystem.config.js --only lenia-replay --update-env
 	pm2 save
 
 replay-logs:
